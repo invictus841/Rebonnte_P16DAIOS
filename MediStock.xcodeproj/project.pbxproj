@@ -31,12 +31,12 @@
 		53E0D8DE2C0609A800DE1134 /* MedicineStockViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8DD2C0609A800DE1134 /* MedicineStockViewModel.swift */; };
 		53E0D8E02C0609B900DE1134 /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8DF2C0609B900DE1134 /* SessionStore.swift */; };
 		53E0D8E22C065FFE00DE1134 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8E12C065FFE00DE1134 /* AppDelegate.swift */; };
-		53E0D8E42C0660FD00DE1134 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 53E0D8E32C0660FD00DE1134 /* GoogleService-Info.plist */; };
 		53E0D8E62C066F4100DE1134 /* AisleListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8E52C066F4100DE1134 /* AisleListView.swift */; };
 		53E0D8E82C066F6500DE1134 /* MedicineDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8E72C066F6500DE1134 /* MedicineDetailView.swift */; };
 		53E0D8EA2C066F7A00DE1134 /* HistoryEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8E92C066F7A00DE1134 /* HistoryEntry.swift */; };
 		53E0D8EC2C06717200DE1134 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8EB2C06717200DE1134 /* MainTabView.swift */; };
 		53E0D8EE2C06718100DE1134 /* AllMedicinesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8ED2C06718100DE1134 /* AllMedicinesView.swift */; };
+		AC1390352E8420DA00F4E421 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = AC1390342E8420DA00F4E421 /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -73,12 +73,12 @@
 		53E0D8DD2C0609A800DE1134 /* MedicineStockViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicineStockViewModel.swift; sourceTree = "<group>"; };
 		53E0D8DF2C0609B900DE1134 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
 		53E0D8E12C065FFE00DE1134 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		53E0D8E32C0660FD00DE1134 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		53E0D8E52C066F4100DE1134 /* AisleListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AisleListView.swift; sourceTree = "<group>"; };
 		53E0D8E72C066F6500DE1134 /* MedicineDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicineDetailView.swift; sourceTree = "<group>"; };
 		53E0D8E92C066F7A00DE1134 /* HistoryEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryEntry.swift; sourceTree = "<group>"; };
 		53E0D8EB2C06717200DE1134 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		53E0D8ED2C06718100DE1134 /* AllMedicinesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllMedicinesView.swift; sourceTree = "<group>"; };
+		AC1390342E8420DA00F4E421 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -140,7 +140,7 @@
 		53E0D8952C06084700DE1134 /* MediStock */ = {
 			isa = PBXGroup;
 			children = (
-				53E0D8E32C0660FD00DE1134 /* GoogleService-Info.plist */,
+				AC1390342E8420DA00F4E421 /* GoogleService-Info.plist */,
 				53E0D8962C06084700DE1134 /* MediStockApp.swift */,
 				53E0D8982C06084700DE1134 /* ContentView.swift */,
 				53E0D89A2C06084900DE1134 /* Assets.xcassets */,
@@ -306,8 +306,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				53E0D89E2C06084900DE1134 /* Preview Assets.xcassets in Resources */,
+				AC1390352E8420DA00F4E421 /* GoogleService-Info.plist in Resources */,
 				53E0D89B2C06084900DE1134 /* Assets.xcassets in Resources */,
-				53E0D8E42C0660FD00DE1134 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -508,7 +508,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"MediStock/Preview Content\"";
-				DEVELOPMENT_TEAM = XGPW6P5YG8;
+				DEVELOPMENT_TEAM = NJWKSQXR8C;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -537,7 +537,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"MediStock/Preview Content\"";
-				DEVELOPMENT_TEAM = XGPW6P5YG8;
+				DEVELOPMENT_TEAM = NJWKSQXR8C;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -565,6 +565,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NJWKSQXR8C;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
 				MARKETING_VERSION = 1.0;
@@ -584,6 +585,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NJWKSQXR8C;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
 				MARKETING_VERSION = 1.0;
@@ -602,6 +604,7 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NJWKSQXR8C;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rebonnte.MediStockUITests;
@@ -619,6 +622,7 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NJWKSQXR8C;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rebonnte.MediStockUITests;
