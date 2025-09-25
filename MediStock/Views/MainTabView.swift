@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
+    
     var body: some View {
         TabView {
             AisleListView()
@@ -14,6 +16,12 @@ struct MainTabView: View {
                     Image(systemName: "square.grid.2x2")
                     Text("All Medicines")
                 }
+            
+            ProfileView()
+                .tabItem {
+                    Image(systemName: "person.circle")
+                    Text("Profile")
+                }
         }
     }
 }
@@ -21,5 +29,6 @@ struct MainTabView: View {
 struct MainTabView_Previews: PreviewProvider {
     static var previews: some View {
         MainTabView()
+            .environmentObject(AuthViewModel())
     }
 }
