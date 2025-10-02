@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct AisleListView: View {
-    @ObservedObject var viewModel = MedicineStockViewModel()
+    @EnvironmentObject var viewModel: MedicineStockViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
 
     var body: some View {
         NavigationView {
@@ -14,7 +15,7 @@ struct AisleListView: View {
             }
             .navigationBarTitle("Aisles")
             .navigationBarItems(trailing: Button(action: {
-                viewModel.addRandomMedicine(user: "test_user") // Remplacez par l'utilisateur actuel
+                viewModel.addRandomMedicine(user: authViewModel.userUID)
             }) {
                 Image(systemName: "plus")
             })
@@ -28,5 +29,7 @@ struct AisleListView: View {
 struct AisleListView_Previews: PreviewProvider {
     static var previews: some View {
         AisleListView()
+            .environmentObject(AuthViewModel())
+            .environmentObject(MedicineStockViewModel())
     }
 }

@@ -6,31 +6,51 @@ class MedicineStockViewModel: ObservableObject {
     @Published var aisles: [String] = []
     @Published var history: [HistoryEntry] = []
     private var db = Firestore.firestore()
+    
+    private var medicinesListener: ListenerRegistration?
+    private var historyListener: ListenerRegistration?
 
     func fetchMedicines() {
-        db.collection("medicines").addSnapshotListener { (querySnapshot, error) in
+        // Guard against fetching when not authenticated
+        guard Auth.auth().currentUser != nil else {
+            print("Not authenticated - skipping fetch")
+            return
+        }
+        
+        medicinesListener?.remove()
+        
+        medicinesListener = db.collection("medicines").addSnapshotListener { (querySnapshot, error) in
             if let error = error {
                 print("Error getting documents: \(error)")
-            } else {
-                self.medicines = querySnapshot?.documents.compactMap { document in
-                    try? document.data(as: Medicine.self)
-                } ?? []
+                return  // Don't crash, just log and return
             }
+            self.medicines = querySnapshot?.documents.compactMap { document in
+                try? document.data(as: Medicine.self)
+            } ?? []
         }
     }
-
+    
     func fetchAisles() {
-        db.collection("medicines").addSnapshotListener { (querySnapshot, error) in
-            if let error = error {
-                print("Error getting documents: \(error)")
-            } else {
+            // Guard against fetching when not authenticated
+            guard Auth.auth().currentUser != nil else {
+                print("Not authenticated - skipping fetch")
+                return
+            }
+            
+            medicinesListener?.remove()
+            
+            medicinesListener = db.collection("medicines").addSnapshotListener { (querySnapshot, error) in
+                if let error = error {
+                    print("Error getting documents: \(error)")
+                    return
+                }
                 let allMedicines = querySnapshot?.documents.compactMap { document in
                     try? document.data(as: Medicine.self)
                 } ?? []
                 self.aisles = Array(Set(allMedicines.map { $0.aisle })).sorted()
+                self.medicines = allMedicines
             }
         }
-    }
 
     func addRandomMedicine(user: String) {
         let medicine = Medicine(name: "Medicine \(Int.random(in: 1...100))", stock: Int.random(in: 1...100), aisle: "Aisle \(Int.random(in: 1...10))")
@@ -99,15 +119,40 @@ class MedicineStockViewModel: ObservableObject {
     }
 
     func fetchHistory(for medicine: Medicine) {
-        guard let medicineId = medicine.id else { return }
-        db.collection("history").whereField("medicineId", isEqualTo: medicineId).addSnapshotListener { (querySnapshot, error) in
-            if let error = error {
-                print("Error getting history: \(error)")
-            } else {
+            guard let medicineId = medicine.id else { return }
+            
+            // Guard against fetching when not authenticated
+            guard Auth.auth().currentUser != nil else {
+                print("Not authenticated - skipping fetch")
+                return
+            }
+            
+            historyListener?.remove()
+            
+            historyListener = db.collection("history").whereField("medicineId", isEqualTo: medicineId).addSnapshotListener { (querySnapshot, error) in
+                if let error = error {
+                    print("Error getting history: \(error)")
+                    return
+                }
                 self.history = querySnapshot?.documents.compactMap { document in
                     try? document.data(as: HistoryEntry.self)
                 } ?? []
             }
         }
+    
+    func stopListening() {
+        medicinesListener?.remove()
+        historyListener?.remove()
+        medicinesListener = nil
+        historyListener = nil
+        
+        // Clear data
+        medicines = []
+        aisles = []
+        history = []
+    }
+    
+    deinit {
+        stopListening()
     }
 }

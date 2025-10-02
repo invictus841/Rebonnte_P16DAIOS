@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct MedicineListView: View {
-    @ObservedObject var viewModel = MedicineStockViewModel()
+    @EnvironmentObject var viewModel: MedicineStockViewModel
     var aisle: String
 
     var body: some View {
@@ -28,5 +28,6 @@ struct MedicineListView_Previews: PreviewProvider {
     static var previews: some View {
         MedicineListView(aisle: "Aisle 1")
             .environmentObject(AuthViewModel())
+            .environmentObject(MedicineStockViewModel())
     }
 }
