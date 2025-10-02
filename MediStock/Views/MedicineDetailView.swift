@@ -1,131 +1,192 @@
 import SwiftUI
 
 struct MedicineDetailView: View {
-    @State var medicine: Medicine
+    let originalMedicine: Medicine
+    @State private var editedMedicine: Medicine
+    
     @EnvironmentObject var viewModel: MedicineStockViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
+    
+    @Environment(\.dismiss) private var dismiss
+    
+    // Track if fields have changed
+    private var isDirty: Bool {
+        editedMedicine.name != originalMedicine.name ||
+        editedMedicine.aisle != originalMedicine.aisle
+    }
+    
+    init(medicine: Medicine) {
+        self.originalMedicine = medicine
+        self._editedMedicine = State(initialValue: medicine)
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Title
-                Text(medicine.name)
+                Text(originalMedicine.name)
                     .font(.largeTitle)
                     .padding(.top, 20)
+                    .padding(.horizontal)
 
                 // Medicine Name
-                medicineNameSection
+                VStack(alignment: .leading, spacing: 16) {
+                    CustomTextField(
+                        "Medicine Name",
+                        text: $editedMedicine.name
+                    )
+                    
+                    CustomTextField(
+                        "Aisle Location",
+                        text: $editedMedicine.aisle
+                    )
+                    
+                    // Show Save/Cancel buttons when fields are edited
+                    if isDirty {
+                        HStack(spacing: 12) {
+                            PrimaryButton("Save Changes") {
+                                saveChanges()
+                            }
+                            
+                            SecondaryButton("Cancel") {
+                                cancelChanges()
+                            }
+                        }
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                }
+                .padding(.horizontal)
+                .animation(.easeInOut(duration: 0.3), value: isDirty)
 
                 // Medicine Stock
-                medicineStockSection
-
-                // Medicine Aisle
-                medicineAisleSection
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Stock")
+                        .font(.headline)
+                    
+                    HStack(spacing: 16) {
+                        IconButton(
+                            systemName: "minus.circle.fill",
+                            size: 44,
+                            backgroundColor: .red.opacity(0.8),
+                            foregroundColor: .white,
+                            accessibilityLabel: "Decrease stock"
+                        ) {
+                            viewModel.decreaseStock(
+                                originalMedicine,
+                                user: authViewModel.userUID
+                            )
+                        }
+                        
+                        Text("\(originalMedicine.stock)")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .frame(minWidth: 80)
+                            .multilineTextAlignment(.center)
+                        
+                        IconButton(
+                            systemName: "plus.circle.fill",
+                            size: 44,
+                            backgroundColor: .green.opacity(0.8),
+                            foregroundColor: .white,
+                            accessibilityLabel: "Increase stock"
+                        ) {
+                            viewModel.increaseStock(
+                                originalMedicine,
+                                user: authViewModel.userUID
+                            )
+                        }
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
 
                 // History Section
-                historySection
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("History")
+                        .font(.headline)
+                        .padding(.top, 20)
+                    
+                    if viewModel.history.filter({ $0.medicineId == originalMedicine.id }).isEmpty {
+                        EmptyStateView(
+                            systemName: "clock",
+                            title: "No History Yet",
+                            message: "Changes to this medicine will appear here"
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                    } else {
+                        ForEach(viewModel.history.filter { $0.medicineId == originalMedicine.id }.sorted(by: { $0.timestamp > $1.timestamp }), id: \.id) { entry in
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    Text(entry.action)
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                    
+                                    Spacer()
+                                    
+                                    Text(entry.timestamp.formatted(date: .abbreviated, time: .shortened))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Text("User: \(entry.user)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                if !entry.details.isEmpty {
+                                    Text(entry.details)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .padding(.top, 2)
+                                }
+                            }
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(10)
+                        }
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 20)
             }
-            .padding(.vertical)
         }
         .navigationBarTitle("Medicine Details", displayMode: .inline)
         .onAppear {
-            viewModel.fetchHistory(for: medicine)
-        }
-        .onChange(of: medicine) { _ in
-            viewModel.updateMedicine(medicine, user: authViewModel.currentUser?.uid ?? "")
+            viewModel.fetchHistory(for: originalMedicine)
         }
     }
-}
-
-extension MedicineDetailView {
-    private var medicineNameSection: some View {
-        VStack(alignment: .leading) {
-            Text("Name")
-                .font(.headline)
-            TextField("Name", text: $medicine.name, onCommit: {
-                viewModel.updateMedicine(medicine, user: authViewModel.currentUser?.uid ?? "")
-            })
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .padding(.bottom, 10)
-        }
-        .padding(.horizontal)
+    
+    // MARK: - Actions
+    
+    private func saveChanges() {
+        var updatedMedicine = originalMedicine
+        updatedMedicine.name = editedMedicine.name.trimmingCharacters(in: .whitespaces)
+        updatedMedicine.aisle = editedMedicine.aisle.trimmingCharacters(in: .whitespaces)
+        
+        viewModel.updateMedicine(updatedMedicine, user: authViewModel.userUID)
+        
+        // Haptic feedback
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        
+        // Go back after saving
+        dismiss()
     }
-
-    private var medicineStockSection: some View {
-        VStack(alignment: .leading) {
-            Text("Stock")
-                .font(.headline)
-            HStack {
-                Button(action: {
-                    viewModel.decreaseStock(medicine, user: authViewModel.currentUser?.uid ?? "")
-                }) {
-                    Image(systemName: "minus.circle")
-                        .font(.title)
-                        .foregroundColor(.red)
-                }
-                TextField("Stock", value: $medicine.stock, formatter: NumberFormatter(), onCommit: {
-                    viewModel.updateMedicine(medicine, user: authViewModel.currentUser?.uid ?? "")
-                })
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .keyboardType(.numberPad)
-                .frame(width: 100)
-                Button(action: {
-                    viewModel.increaseStock(medicine, user: authViewModel.currentUser?.uid ?? "")
-                }) {
-                    Image(systemName: "plus.circle")
-                        .font(.title)
-                        .foregroundColor(.green)
-                }
-            }
-            .padding(.bottom, 10)
-        }
-        .padding(.horizontal)
-    }
-
-    private var medicineAisleSection: some View {
-        VStack(alignment: .leading) {
-            Text("Aisle")
-                .font(.headline)
-            TextField("Aisle", text: $medicine.aisle, onCommit: {
-                viewModel.updateMedicine(medicine, user: authViewModel.currentUser?.uid ?? "")
-            })
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .padding(.bottom, 10)
-        }
-        .padding(.horizontal)
-    }
-
-    private var historySection: some View {
-        VStack(alignment: .leading) {
-            Text("History")
-                .font(.headline)
-                .padding(.top, 20)
-            ForEach(viewModel.history.filter { $0.medicineId == medicine.id }, id: \.id) { entry in
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(entry.action)
-                        .font(.headline)
-                    Text("User: \(entry.user)")
-                        .font(.subheadline)
-                    Text("Date: \(entry.timestamp.formatted())")
-                        .font(.subheadline)
-                    Text("Details: \(entry.details)")
-                        .font(.subheadline)
-                }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
-                .padding(.bottom, 5)
-            }
-        }
-        .padding(.horizontal)
+    
+    private func cancelChanges() {
+        // Reset to original values
+        editedMedicine = originalMedicine
+        
+        // Haptic feedback
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 }
 
 struct MedicineDetailView_Previews: PreviewProvider {
     static var previews: some View {
-        let sampleMedicine = Medicine(name: "Sample", stock: 10, aisle: "Aisle 1")
-        MedicineDetailView(medicine: sampleMedicine)
-            .environmentObject(AuthViewModel())
-            .environmentObject(MedicineStockViewModel())
+        let sampleMedicine = Medicine(name: "Aspirin", stock: 25, aisle: "Aisle 1")
+        NavigationView {
+            MedicineDetailView(medicine: sampleMedicine)
+                .environmentObject(AuthViewModel())
+                .environmentObject(MedicineStockViewModel())
+        }
     }
 }
