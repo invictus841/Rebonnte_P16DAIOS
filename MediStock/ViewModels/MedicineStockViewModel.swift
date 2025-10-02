@@ -19,10 +19,12 @@ class MedicineStockViewModel: ObservableObject {
         
         medicinesListener?.remove()
         
-        medicinesListener = db.collection("medicines").addSnapshotListener { (querySnapshot, error) in
+        medicinesListener = db.collection("medicines").addSnapshotListener { [weak self] (querySnapshot, error) in
+            guard let self = self else { return }
+            
             if let error = error {
                 print("Error getting documents: \(error)")
-                return  // Don't crash, just log and return
+                return
             }
             self.medicines = querySnapshot?.documents.compactMap { document in
                 try? document.data(as: Medicine.self)
@@ -39,18 +41,20 @@ class MedicineStockViewModel: ObservableObject {
             
             medicinesListener?.remove()
             
-            medicinesListener = db.collection("medicines").addSnapshotListener { (querySnapshot, error) in
-                if let error = error {
-                    print("Error getting documents: \(error)")
-                    return
-                }
-                let allMedicines = querySnapshot?.documents.compactMap { document in
-                    try? document.data(as: Medicine.self)
-                } ?? []
-                self.aisles = Array(Set(allMedicines.map { $0.aisle })).sorted()
-                self.medicines = allMedicines
+        medicinesListener = db.collection("medicines").addSnapshotListener { [weak self] (querySnapshot, error) in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("Error getting documents: \(error)")
+                return
             }
+            let allMedicines = querySnapshot?.documents.compactMap { document in
+                try? document.data(as: Medicine.self)
+            } ?? []
+            self.aisles = Array(Set(allMedicines.map { $0.aisle })).sorted()
+            self.medicines = allMedicines
         }
+    }
 
     func addRandomMedicine(user: String) {
         let medicine = Medicine(name: "Medicine \(Int.random(in: 1...100))", stock: Int.random(in: 1...100), aisle: "Aisle \(Int.random(in: 1...10))")
@@ -82,12 +86,14 @@ class MedicineStockViewModel: ObservableObject {
         updateStock(medicine, by: -1, user: user)
     }
 
-    private func updateStock(_ medicine: Medicine, by amount: Int, user: String) {
+    func updateStock(_ medicine: Medicine, by amount: Int, user: String) {
         guard let id = medicine.id else { return }
         let newStock = medicine.stock + amount
         db.collection("medicines").document(id).updateData([
             "stock": newStock
-        ]) { error in
+        ]) { [weak self] error in
+            guard let self = self else { return }
+            
             if let error = error {
                 print("Error updating stock: \(error)")
             } else {
@@ -129,16 +135,18 @@ class MedicineStockViewModel: ObservableObject {
             
             historyListener?.remove()
             
-            historyListener = db.collection("history").whereField("medicineId", isEqualTo: medicineId).addSnapshotListener { (querySnapshot, error) in
-                if let error = error {
-                    print("Error getting history: \(error)")
-                    return
-                }
-                self.history = querySnapshot?.documents.compactMap { document in
-                    try? document.data(as: HistoryEntry.self)
-                } ?? []
+        historyListener = db.collection("history").whereField("medicineId", isEqualTo: medicineId).addSnapshotListener { [weak self] (querySnapshot, error) in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("Error getting history: \(error)")
+                return
             }
+            self.history = querySnapshot?.documents.compactMap { document in
+                try? document.data(as: HistoryEntry.self)
+            } ?? []
         }
+    }
     
     func stopListening() {
         medicinesListener?.remove()
