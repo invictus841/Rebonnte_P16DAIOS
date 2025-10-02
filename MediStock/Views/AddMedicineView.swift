@@ -11,7 +11,7 @@ struct AddMedicineView: View {
     // Form fields
     @State private var name = ""
     @State private var stock = 0
-    @State private var aisle = ""
+    @State private var aisleNumber = 1
     
     // UI state
     @State private var showingValidationError = false
@@ -27,7 +27,7 @@ struct AddMedicineView: View {
     @FocusState private var focusedField: Field?
     
     private enum Field {
-        case name, aisle
+        case name
     }
     
     var body: some View {
@@ -68,14 +68,23 @@ struct AddMedicineView: View {
                         )
                         .submitLabel(.next)
                         
-                        CustomTextField(
-                            "Aisle Location",
-                            text: $aisle,
-                            placeholder: "e.g., Aisle 1"
-                        )
-                        .focused($focusedField, equals: .aisle)
-                        .textInputAutocapitalization(.words)
-                        .submitLabel(.done)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Aisle")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.secondary)
+                            
+                            Picker("Aisle", selection: $aisleNumber) {
+                                ForEach(1..<100) { number in
+                                    Text("Aisle \(number)").tag(number)
+                                }
+                            }
+                            .pickerStyle(.wheel)
+                            .frame(height: 120)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color(.systemGray6))
+                            )
+                        }
                     }
                     .padding(.horizontal)
                     
@@ -127,7 +136,6 @@ struct AddMedicineView: View {
     
     private var isFormValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !aisle.trimmingCharacters(in: .whitespaces).isEmpty &&
         stock >= 0
     }
     
@@ -149,14 +157,6 @@ struct AddMedicineView: View {
             return false
         }
         
-        // Check aisle
-        let trimmedAisle = aisle.trimmingCharacters(in: .whitespaces)
-        if trimmedAisle.isEmpty {
-            validationMessage = "Please enter an aisle location"
-            showingValidationError = true
-            return false
-        }
-        
         // Check stock
         if stock < 0 {
             validationMessage = "Stock cannot be negative"
@@ -172,8 +172,6 @@ struct AddMedicineView: View {
     private func handleSubmit() {
         switch focusedField {
         case .name:
-            focusedField = .aisle
-        case .aisle:
             if isFormValid {
                 saveMedicine()
             }
@@ -191,14 +189,13 @@ struct AddMedicineView: View {
         
         // Trim values
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
-        let trimmedAisle = aisle.trimmingCharacters(in: .whitespaces)
         
         // Create medicine object
         let newMedicine = Medicine(
             id: nil,
             name: trimmedName,
             stock: stock,
-            aisle: trimmedAisle
+            aisle: "Aisle \(aisleNumber)"
         )
         
         // Save to Firebase
@@ -206,7 +203,7 @@ struct AddMedicineView: View {
             do {
                 try await viewModel.addMedicine(
                     newMedicine,
-                    user: authViewModel.userUID
+                    user: authViewModel.userEmail
                 )
                 
                 // Success - dismiss view

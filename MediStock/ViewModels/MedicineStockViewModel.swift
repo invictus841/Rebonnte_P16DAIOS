@@ -140,9 +140,44 @@ class MedicineStockViewModel: ObservableObject {
 
     func updateMedicine(_ medicine: Medicine, user: String) {
         guard let id = medicine.id else { return }
+        
+        // Find the original medicine to compare
+        guard let originalMedicine = medicines.first(where: { $0.id == id }) else {
+            // If not found, just do a simple update
+            do {
+                try db.collection("medicines").document(id).setData(from: medicine)
+            } catch let error {
+                print("Error updating document: \(error)")
+            }
+            return
+        }
+        
+        // Track what changed
+        var changes: [String] = []
+        
+        if originalMedicine.name != medicine.name {
+            changes.append("Name: '\(originalMedicine.name)' → '\(medicine.name)'")
+        }
+        
+        if originalMedicine.aisle != medicine.aisle {
+            changes.append("Aisle: '\(originalMedicine.aisle)' → '\(medicine.aisle)'")
+        }
+        
+        // Only update if there are actual changes
+        guard !changes.isEmpty else { return }
+        
         do {
             try db.collection("medicines").document(id).setData(from: medicine)
-            addHistory(action: "Updated \(medicine.name)", user: user, medicineId: id, details: "Updated medicine details")
+            
+            let action = changes.count == 1 ? "Updated \(medicine.name)" : "Updated \(medicine.name) (multiple fields)"
+            let details = changes.joined(separator: "\n")
+            
+            addHistory(
+                action: action,
+                user: user,
+                medicineId: id,
+                details: details
+            )
         } catch let error {
             print("Error updating document: \(error)")
         }

@@ -3,6 +3,7 @@ import SwiftUI
 struct MedicineDetailView: View {
     let originalMedicine: Medicine
     @State private var editedMedicine: Medicine
+    @State private var aisleNumber: Int
     
     @EnvironmentObject var viewModel: MedicineStockViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -12,12 +13,17 @@ struct MedicineDetailView: View {
     // Track if fields have changed
     private var isDirty: Bool {
         editedMedicine.name != originalMedicine.name ||
-        editedMedicine.aisle != originalMedicine.aisle
+        aisleNumber != (Int(originalMedicine.aisle.components(separatedBy: " ").last ?? "1") ?? 1)
     }
     
     init(medicine: Medicine) {
         self.originalMedicine = medicine
         self._editedMedicine = State(initialValue: medicine)
+        
+        // Extract number from "Aisle 5" -> 5
+        let components = medicine.aisle.components(separatedBy: " ")
+        let number = Int(components.last ?? "1") ?? 1
+        self._aisleNumber = State(initialValue: number)
     }
 
     var body: some View {
@@ -36,10 +42,25 @@ struct MedicineDetailView: View {
                         text: $editedMedicine.name
                     )
                     
-                    CustomTextField(
-                        "Aisle Location",
-                        text: $editedMedicine.aisle
-                    )
+                    HStack {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Aisle")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.secondary)
+                            
+                            Picker("Aisle", selection: $aisleNumber) {
+                                ForEach(1..<100) { number in
+                                    Text("Aisle \(number)").tag(number)
+                                }
+                            }
+                            .pickerStyle(.wheel)
+                            .frame(height: 120)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color(.systemGray6))
+                            )
+                        }
+                    }
                     
                     // Show Save/Cancel buttons when fields are edited
                     if isDirty {
@@ -73,7 +94,7 @@ struct MedicineDetailView: View {
                         ) {
                             viewModel.decreaseStock(
                                 originalMedicine,
-                                user: authViewModel.userUID
+                                user: authViewModel.userEmail
                             )
                         }
                         
@@ -91,7 +112,7 @@ struct MedicineDetailView: View {
                         ) {
                             viewModel.increaseStock(
                                 originalMedicine,
-                                user: authViewModel.userUID
+                                user: authViewModel.userEmail
                             )
                         }
                     }
@@ -115,8 +136,13 @@ struct MedicineDetailView: View {
                         .padding()
                     } else {
                         ForEach(viewModel.history.filter { $0.medicineId == originalMedicine.id }.sorted(by: { $0.timestamp > $1.timestamp }), id: \.id) { entry in
-                            VStack(alignment: .leading, spacing: 6) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                // Action header
                                 HStack {
+                                    Image(systemName: iconForAction(entry.action))
+                                        .foregroundColor(colorForAction(entry.action))
+                                        .font(.caption)
+                                    
                                     Text(entry.action)
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
@@ -128,15 +154,23 @@ struct MedicineDetailView: View {
                                         .foregroundColor(.secondary)
                                 }
                                 
-                                Text("User: \(entry.user)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                                // User
+                                HStack(spacing: 4) {
+                                    Image(systemName: "person.circle.fill")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                    Text(entry.user)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
                                 
+                                // Details
                                 if !entry.details.isEmpty {
                                     Text(entry.details)
                                         .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .padding(.top, 2)
+                                        .foregroundColor(.primary)
+                                        .padding(.top, 4)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
                             .padding()
@@ -155,27 +189,56 @@ struct MedicineDetailView: View {
         }
     }
     
+    private func iconForAction(_ action: String) -> String {
+        if action.contains("Increased") {
+            return "arrow.up.circle.fill"
+        } else if action.contains("Decreased") {
+            return "arrow.down.circle.fill"
+        } else if action.contains("Added") {
+            return "plus.circle.fill"
+        } else if action.contains("Deleted") {
+            return "trash.circle.fill"
+        } else if action.contains("Updated") {
+            return "pencil.circle.fill"
+        }
+        return "info.circle.fill"
+    }
+    
+    private func colorForAction(_ action: String) -> Color {
+        if action.contains("Increased") {
+            return .green
+        } else if action.contains("Decreased") {
+            return .red
+        } else if action.contains("Added") {
+            return .blue
+        } else if action.contains("Deleted") {
+            return .orange
+        } else if action.contains("Updated") {
+            return .purple
+        }
+        return .gray
+    }
+    
     // MARK: - Actions
     
     private func saveChanges() {
         var updatedMedicine = originalMedicine
         updatedMedicine.name = editedMedicine.name.trimmingCharacters(in: .whitespaces)
-        updatedMedicine.aisle = editedMedicine.aisle.trimmingCharacters(in: .whitespaces)
+        updatedMedicine.aisle = "Aisle \(aisleNumber)"
         
-        viewModel.updateMedicine(updatedMedicine, user: authViewModel.userUID)
+        viewModel.updateMedicine(updatedMedicine, user: authViewModel.userEmail)
         
-        // Haptic feedback
         UINotificationFeedbackGenerator().notificationOccurred(.success)
-        
-        // Go back after saving
         dismiss()
     }
     
     private func cancelChanges() {
-        // Reset to original values
         editedMedicine = originalMedicine
         
-        // Haptic feedback
+        // Reset aisle number too
+        let components = originalMedicine.aisle.components(separatedBy: " ")
+        aisleNumber = Int(components.last ?? "1") ?? 1
+        
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 }

@@ -86,7 +86,7 @@ struct AllMedicinesView: View {
             viewModel.deleteMedicine(
                 id: id,
                 medicineName: medicine.name,
-                user: authViewModel.userUID
+                user: authViewModel.userEmail
             )
         }
     }
