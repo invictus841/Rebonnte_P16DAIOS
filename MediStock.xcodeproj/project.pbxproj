@@ -35,6 +35,7 @@
 		53E0D8EA2C066F7A00DE1134 /* HistoryEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8E92C066F7A00DE1134 /* HistoryEntry.swift */; };
 		53E0D8EC2C06717200DE1134 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8EB2C06717200DE1134 /* MainTabView.swift */; };
 		53E0D8EE2C06718100DE1134 /* AllMedicinesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8ED2C06718100DE1134 /* AllMedicinesView.swift */; };
+		AC00949A2E8EEB93003F4215 /* AddMedicine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0094992E8EEB93003F4215 /* AddMedicine.swift */; };
 		AC1390352E8420DA00F4E421 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = AC1390342E8420DA00F4E421 /* GoogleService-Info.plist */; };
 		AC13903B2E858A9600F4E421 /* UIComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC13903A2E858A9600F4E421 /* UIComponents.swift */; };
 		AC1390412E85971100F4E421 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC1390402E85971100F4E421 /* AuthService.swift */; };
@@ -80,6 +81,7 @@
 		53E0D8E92C066F7A00DE1134 /* HistoryEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryEntry.swift; sourceTree = "<group>"; };
 		53E0D8EB2C06717200DE1134 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		53E0D8ED2C06718100DE1134 /* AllMedicinesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllMedicinesView.swift; sourceTree = "<group>"; };
+		AC0094992E8EEB93003F4215 /* AddMedicine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMedicine.swift; sourceTree = "<group>"; };
 		AC1390342E8420DA00F4E421 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		AC13903A2E858A9600F4E421 /* UIComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIComponents.swift; sourceTree = "<group>"; };
 		AC1390402E85971100F4E421 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
@@ -222,6 +224,7 @@
 				53E0D8ED2C06718100DE1134 /* AllMedicinesView.swift */,
 				53E0D8D92C06098F00DE1134 /* MedicineListView.swift */,
 				53E0D8E72C066F6500DE1134 /* MedicineDetailView.swift */,
+				AC0094992E8EEB93003F4215 /* AddMedicine.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -381,6 +384,7 @@
 				53E0D8992C06084700DE1134 /* ContentView.swift in Sources */,
 				53E0D8DC2C06099C00DE1134 /* Medicine.swift in Sources */,
 				53E0D8DA2C06098F00DE1134 /* MedicineListView.swift in Sources */,
+				AC00949A2E8EEB93003F4215 /* AddMedicine.swift in Sources */,
 				AC1390452E8597EB00F4E421 /* ProfileView.swift in Sources */,
 				53E0D8E62C066F4100DE1134 /* AisleListView.swift in Sources */,
 				53E0D8972C06084700DE1134 /* MediStockApp.swift in Sources */,

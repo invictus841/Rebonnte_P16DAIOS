@@ -55,24 +55,48 @@ class MedicineStockViewModel: ObservableObject {
             self.medicines = allMedicines
         }
     }
-
-    func addRandomMedicine(user: String) {
-        let medicine = Medicine(name: "Medicine \(Int.random(in: 1...100))", stock: Int.random(in: 1...100), aisle: "Aisle \(Int.random(in: 1...10))")
-        do {
-            try db.collection("medicines").document(medicine.id ?? UUID().uuidString).setData(from: medicine)
-            addHistory(action: "Added \(medicine.name)", user: user, medicineId: medicine.id ?? "", details: "Added new medicine")
-        } catch let error {
-            print("Error adding document: \(error)")
+    
+    func addMedicine(_ medicine: Medicine, user: String) async throws {
+        // Generate a new document ID
+        let docRef = db.collection("medicines").document()
+        
+        // Create medicine with the generated ID
+        var newMedicine = medicine
+        newMedicine.id = docRef.documentID
+        
+        // Save to Firebase
+        try docRef.setData(from: newMedicine)
+        
+        // Add to history
+        await MainActor.run {
+            addHistory(
+                action: "Added \(medicine.name)",
+                user: user,
+                medicineId: docRef.documentID,
+                details: "Added new medicine with initial stock of \(medicine.stock) in \(medicine.aisle)"
+            )
         }
     }
 
-    func deleteMedicines(at offsets: IndexSet) {
-        offsets.map { medicines[$0] }.forEach { medicine in
-            if let id = medicine.id {
-                db.collection("medicines").document(id).delete { error in
-                    if let error = error {
-                        print("Error removing document: \(error)")
-                    }
+    func deleteMedicine(id: String, medicineName: String, user: String) {
+        // Delete from Firebase
+        db.collection("medicines").document(id).delete { [weak self] error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("Error deleting medicine: \(error)")
+            } else {
+                // Add to history
+                self.addHistory(
+                    action: "Deleted \(medicineName)",
+                    user: user,
+                    medicineId: id,
+                    details: "Medicine removed from inventory"
+                )
+                
+                // Remove from local array (snapshot listener will handle this, but for immediate UI update)
+                if let index = self.medicines.firstIndex(where: { $0.id == id }) {
+                    self.medicines.remove(at: index)
                 }
             }
         }

@@ -39,12 +39,13 @@ struct AllMedicinesView: View {
                             }
                         }
                     }
+                    .onDelete(perform: deleteMedicines)
                 }
                 .navigationBarTitle("All Medicines")
-                .navigationBarItems(trailing: Button(action: {
-                    viewModel.addRandomMedicine(user: authViewModel.userUID)
-                }) {
+                .navigationBarItems(trailing: NavigationLink(destination: AddMedicineView()) {
                     Image(systemName: "plus")
+                        .font(.title3)
+                        .foregroundColor(.primaryAccent)
                 })
             }
         }
@@ -72,6 +73,22 @@ struct AllMedicinesView: View {
         }
 
         return medicines
+    }
+    
+    // MARK: - Delete Action
+    
+    private func deleteMedicines(at offsets: IndexSet) {
+        let medicinesToDelete = offsets.map { filteredAndSortedMedicines[$0] }
+        
+        for medicine in medicinesToDelete {
+            guard let id = medicine.id else { continue }
+            
+            viewModel.deleteMedicine(
+                id: id,
+                medicineName: medicine.name,
+                user: authViewModel.userUID
+            )
+        }
     }
 }
 
