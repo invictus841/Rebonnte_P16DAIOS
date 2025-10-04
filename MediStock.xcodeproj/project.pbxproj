@@ -14,17 +14,6 @@
 		53E0D8A82C06084900DE1134 /* MediStockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8A72C06084900DE1134 /* MediStockTests.swift */; };
 		53E0D8B22C06084900DE1134 /* MediStockUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8B12C06084900DE1134 /* MediStockUITests.swift */; };
 		53E0D8B42C06084900DE1134 /* MediStockUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8B32C06084900DE1134 /* MediStockUITestsLaunchTests.swift */; };
-		53E0D8C22C06092E00DE1134 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 53E0D8C12C06092E00DE1134 /* FirebaseAnalytics */; };
-		53E0D8C42C06092E00DE1134 /* FirebaseAnalyticsOnDeviceConversion in Frameworks */ = {isa = PBXBuildFile; productRef = 53E0D8C32C06092E00DE1134 /* FirebaseAnalyticsOnDeviceConversion */; };
-		53E0D8C62C06092E00DE1134 /* FirebaseAnalyticsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 53E0D8C52C06092E00DE1134 /* FirebaseAnalyticsSwift */; };
-		53E0D8C82C06092E00DE1134 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 53E0D8C72C06092E00DE1134 /* FirebaseAuth */; };
-		53E0D8CA2C06092E00DE1134 /* FirebaseAuthCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 53E0D8C92C06092E00DE1134 /* FirebaseAuthCombine-Community */; };
-		53E0D8CC2C06092E00DE1134 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 53E0D8CB2C06092E00DE1134 /* FirebaseCrashlytics */; };
-		53E0D8CE2C06092E00DE1134 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 53E0D8CD2C06092E00DE1134 /* FirebaseDatabase */; };
-		53E0D8D02C06092E00DE1134 /* FirebaseDatabaseSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 53E0D8CF2C06092E00DE1134 /* FirebaseDatabaseSwift */; };
-		53E0D8D22C06092E00DE1134 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 53E0D8D12C06092E00DE1134 /* FirebaseFirestore */; };
-		53E0D8D42C06092E00DE1134 /* FirebaseFirestoreCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 53E0D8D32C06092E00DE1134 /* FirebaseFirestoreCombine-Community */; };
-		53E0D8D62C06092E00DE1134 /* FirebaseFirestoreSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 53E0D8D52C06092E00DE1134 /* FirebaseFirestoreSwift */; };
 		53E0D8D82C06097900DE1134 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8D72C06097900DE1134 /* LoginView.swift */; };
 		53E0D8DA2C06098F00DE1134 /* MedicineListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8D92C06098F00DE1134 /* MedicineListView.swift */; };
 		53E0D8DC2C06099C00DE1134 /* Medicine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8DB2C06099C00DE1134 /* Medicine.swift */; };
@@ -37,6 +26,9 @@
 		53E0D8EE2C06718100DE1134 /* AllMedicinesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E0D8ED2C06718100DE1134 /* AllMedicinesView.swift */; };
 		AC00949A2E8EEB93003F4215 /* AddMedicineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0094992E8EEB93003F4215 /* AddMedicineView.swift */; };
 		AC0094B42E912CAC003F4215 /* MedicineService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0094B32E912CAC003F4215 /* MedicineService.swift */; };
+		AC0094B72E913667003F4215 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = AC0094B62E913667003F4215 /* FirebaseAuth */; };
+		AC0094B92E913667003F4215 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = AC0094B82E913667003F4215 /* FirebaseCore */; };
+		AC0094BD2E913667003F4215 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = AC0094BC2E913667003F4215 /* FirebaseFirestore */; };
 		AC1390352E8420DA00F4E421 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = AC1390342E8420DA00F4E421 /* GoogleService-Info.plist */; };
 		AC13903B2E858A9600F4E421 /* UIComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC13903A2E858A9600F4E421 /* UIComponents.swift */; };
 		AC1390412E85971100F4E421 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC1390402E85971100F4E421 /* AuthService.swift */; };
@@ -96,17 +88,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				53E0D8D02C06092E00DE1134 /* FirebaseDatabaseSwift in Frameworks */,
-				53E0D8C62C06092E00DE1134 /* FirebaseAnalyticsSwift in Frameworks */,
-				53E0D8C22C06092E00DE1134 /* FirebaseAnalytics in Frameworks */,
-				53E0D8D42C06092E00DE1134 /* FirebaseFirestoreCombine-Community in Frameworks */,
-				53E0D8C42C06092E00DE1134 /* FirebaseAnalyticsOnDeviceConversion in Frameworks */,
-				53E0D8D62C06092E00DE1134 /* FirebaseFirestoreSwift in Frameworks */,
-				53E0D8CC2C06092E00DE1134 /* FirebaseCrashlytics in Frameworks */,
-				53E0D8D22C06092E00DE1134 /* FirebaseFirestore in Frameworks */,
-				53E0D8C82C06092E00DE1134 /* FirebaseAuth in Frameworks */,
-				53E0D8CE2C06092E00DE1134 /* FirebaseDatabase in Frameworks */,
-				53E0D8CA2C06092E00DE1134 /* FirebaseAuthCombine-Community in Frameworks */,
+				AC0094BD2E913667003F4215 /* FirebaseFirestore in Frameworks */,
+				AC0094B92E913667003F4215 /* FirebaseCore in Frameworks */,
+				AC0094B72E913667003F4215 /* FirebaseAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -249,17 +233,9 @@
 			);
 			name = MediStock;
 			packageProductDependencies = (
-				53E0D8C12C06092E00DE1134 /* FirebaseAnalytics */,
-				53E0D8C32C06092E00DE1134 /* FirebaseAnalyticsOnDeviceConversion */,
-				53E0D8C52C06092E00DE1134 /* FirebaseAnalyticsSwift */,
-				53E0D8C72C06092E00DE1134 /* FirebaseAuth */,
-				53E0D8C92C06092E00DE1134 /* FirebaseAuthCombine-Community */,
-				53E0D8CB2C06092E00DE1134 /* FirebaseCrashlytics */,
-				53E0D8CD2C06092E00DE1134 /* FirebaseDatabase */,
-				53E0D8CF2C06092E00DE1134 /* FirebaseDatabaseSwift */,
-				53E0D8D12C06092E00DE1134 /* FirebaseFirestore */,
-				53E0D8D32C06092E00DE1134 /* FirebaseFirestoreCombine-Community */,
-				53E0D8D52C06092E00DE1134 /* FirebaseFirestoreSwift */,
+				AC0094B62E913667003F4215 /* FirebaseAuth */,
+				AC0094B82E913667003F4215 /* FirebaseCore */,
+				AC0094BC2E913667003F4215 /* FirebaseFirestore */,
 			);
 			productName = MediStock;
 			productReference = 53E0D8932C06084700DE1134 /* MediStock.app */;
@@ -309,7 +285,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1540;
-				LastUpgradeCheck = 1540;
+				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					53E0D8922C06084700DE1134 = {
 						CreatedOnToolsVersion = 15.4;
@@ -334,7 +310,7 @@
 			);
 			mainGroup = 53E0D88A2C06084700DE1134;
 			packageReferences = (
-				53E0D8C02C06092E00DE1134 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				AC0094B52E913667003F4215 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			productRefGroup = 53E0D8942C06084700DE1134 /* Products */;
 			projectDirPath = "";
@@ -468,6 +444,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = NJWKSQXR8C;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -491,6 +468,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -531,6 +509,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = NJWKSQXR8C;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -547,6 +526,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -560,7 +540,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"MediStock/Preview Content\"";
-				DEVELOPMENT_TEAM = NJWKSQXR8C;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -589,7 +568,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"MediStock/Preview Content\"";
-				DEVELOPMENT_TEAM = NJWKSQXR8C;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -613,11 +591,9 @@
 		53E0D8BB2C06084900DE1134 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = NJWKSQXR8C;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
 				MARKETING_VERSION = 1.0;
@@ -633,11 +609,9 @@
 		53E0D8BC2C06084900DE1134 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = NJWKSQXR8C;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
 				MARKETING_VERSION = 1.0;
@@ -653,10 +627,8 @@
 		53E0D8BE2C06084900DE1134 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = NJWKSQXR8C;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rebonnte.MediStockUITests;
@@ -671,10 +643,8 @@
 		53E0D8BF2C06084900DE1134 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = NJWKSQXR8C;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rebonnte.MediStockUITests;
@@ -728,71 +698,31 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		53E0D8C02C06092E00DE1134 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+		AC0094B52E913667003F4215 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 10.26.0;
+				minimumVersion = 12.3.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		53E0D8C12C06092E00DE1134 /* FirebaseAnalytics */ = {
+		AC0094B62E913667003F4215 /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 53E0D8C02C06092E00DE1134 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAnalytics;
-		};
-		53E0D8C32C06092E00DE1134 /* FirebaseAnalyticsOnDeviceConversion */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 53E0D8C02C06092E00DE1134 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAnalyticsOnDeviceConversion;
-		};
-		53E0D8C52C06092E00DE1134 /* FirebaseAnalyticsSwift */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 53E0D8C02C06092E00DE1134 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAnalyticsSwift;
-		};
-		53E0D8C72C06092E00DE1134 /* FirebaseAuth */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 53E0D8C02C06092E00DE1134 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			package = AC0094B52E913667003F4215 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAuth;
 		};
-		53E0D8C92C06092E00DE1134 /* FirebaseAuthCombine-Community */ = {
+		AC0094B82E913667003F4215 /* FirebaseCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 53E0D8C02C06092E00DE1134 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = "FirebaseAuthCombine-Community";
+			package = AC0094B52E913667003F4215 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
 		};
-		53E0D8CB2C06092E00DE1134 /* FirebaseCrashlytics */ = {
+		AC0094BC2E913667003F4215 /* FirebaseFirestore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 53E0D8C02C06092E00DE1134 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseCrashlytics;
-		};
-		53E0D8CD2C06092E00DE1134 /* FirebaseDatabase */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 53E0D8C02C06092E00DE1134 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseDatabase;
-		};
-		53E0D8CF2C06092E00DE1134 /* FirebaseDatabaseSwift */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 53E0D8C02C06092E00DE1134 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseDatabaseSwift;
-		};
-		53E0D8D12C06092E00DE1134 /* FirebaseFirestore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 53E0D8C02C06092E00DE1134 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			package = AC0094B52E913667003F4215 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
-		};
-		53E0D8D32C06092E00DE1134 /* FirebaseFirestoreCombine-Community */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 53E0D8C02C06092E00DE1134 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = "FirebaseFirestoreCombine-Community";
-		};
-		53E0D8D52C06092E00DE1134 /* FirebaseFirestoreSwift */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 53E0D8C02C06092E00DE1134 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseFirestoreSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
