@@ -117,7 +117,7 @@ class FirebaseAuthService: AuthServiceProtocol {
     }
     
     func startAuthListener(completion: @escaping (User?) -> Void) {
-        authHandle = Auth.auth().addStateDidChangeListener { [weak self] _, firebaseUser in
+        authHandle = Auth.auth().addStateDidChangeListener { _, firebaseUser in
             let user = firebaseUser.map { User(uid: $0.uid, email: $0.email) }
             completion(user)
         }

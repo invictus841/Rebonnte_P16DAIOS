@@ -1,158 +1,130 @@
 import Foundation
-import Firebase
 
 class MedicineStockViewModel: ObservableObject {
+    
+    // MARK: - Published Properties
+    
     @Published var medicines: [Medicine] = []
     @Published var aisles: [String] = []
     @Published var history: [HistoryEntry] = []
-    private var db = Firestore.firestore()
+    @Published var isLoading = false
+    @Published var errorMessage: String?
     
-    private var medicinesListener: ListenerRegistration?
-    private var historyListener: ListenerRegistration?
-
+    // MARK: - Private Properties
+    
+    private let medicineService: MedicineServiceProtocol
+    
+    // MARK: - Initialization
+    
+    init(medicineService: MedicineServiceProtocol = FirebaseMedicineService()) {
+        self.medicineService = medicineService
+    }
+    
+    // MARK: - Fetch Methods
+    
     func fetchMedicines() {
-        // Guard against fetching when not authenticated
-        guard Auth.auth().currentUser != nil else {
-            print("Not authenticated - skipping fetch")
-            return
-        }
-        
-        medicinesListener?.remove()
-        
-        medicinesListener = db.collection("medicines").addSnapshotListener { [weak self] (querySnapshot, error) in
-            guard let self = self else { return }
-            
-            if let error = error {
-                print("Error getting documents: \(error)")
-                return
+        medicineService.startMedicinesListener { [weak self] medicines in
+            Task { @MainActor in
+                self?.medicines = medicines
             }
-            self.medicines = querySnapshot?.documents.compactMap { document in
-                try? document.data(as: Medicine.self)
-            } ?? []
         }
     }
     
     func fetchAisles() {
-            // Guard against fetching when not authenticated
-            guard Auth.auth().currentUser != nil else {
-                print("Not authenticated - skipping fetch")
-                return
+        medicineService.startMedicinesListener { [weak self] medicines in
+            Task { @MainActor in
+                self?.medicines = medicines
+                self?.aisles = Array(Set(medicines.map { $0.aisle })).sorted()
             }
-            
-            medicinesListener?.remove()
-            
-        medicinesListener = db.collection("medicines").addSnapshotListener { [weak self] (querySnapshot, error) in
-            guard let self = self else { return }
-            
-            if let error = error {
-                print("Error getting documents: \(error)")
-                return
-            }
-            let allMedicines = querySnapshot?.documents.compactMap { document in
-                try? document.data(as: Medicine.self)
-            } ?? []
-            self.aisles = Array(Set(allMedicines.map { $0.aisle })).sorted()
-            self.medicines = allMedicines
         }
     }
     
-    func addMedicine(_ medicine: Medicine, user: String) async throws {
-        // Generate a new document ID
-        let docRef = db.collection("medicines").document()
+    func fetchHistory(for medicine: Medicine) {
+        guard let medicineId = medicine.id else { return }
         
-        // Create medicine with the generated ID
-        var newMedicine = medicine
-        newMedicine.id = docRef.documentID
-        
-        // Save to Firebase
-        try docRef.setData(from: newMedicine)
-        
-        // Add to history
-        await MainActor.run {
-            addHistory(
-                action: "Added \(medicine.name)",
-                user: user,
-                medicineId: docRef.documentID,
-                details: "Added new medicine with initial stock of \(medicine.stock) in \(medicine.aisle)"
-            )
+        medicineService.startHistoryListener(for: medicineId) { [weak self] history in
+            Task { @MainActor in
+                self?.history = history
+            }
         }
     }
-
-    func deleteMedicine(id: String, medicineName: String, user: String) {
-        // Delete from Firebase
-        db.collection("medicines").document(id).delete { [weak self] error in
-            guard let self = self else { return }
+    
+    // MARK: - CRUD Operations
+    
+    func addMedicine(_ medicine: Medicine, user: String) async throws {
+        await MainActor.run {
+            self.isLoading = true
+            self.errorMessage = nil
+        }
+        
+        do {
+            let medicineId = try await medicineService.addMedicine(medicine)
             
-            if let error = error {
-                print("Error deleting medicine: \(error)")
-            } else {
-                // Add to history
-                self.addHistory(
-                    action: "Deleted \(medicineName)",
-                    user: user,
+            // Add history entry
+            let entry = HistoryEntry(
+                medicineId: medicineId,
+                user: user,
+                action: "Added \(medicine.name)",
+                details: "Added new medicine with initial stock of \(medicine.stock) in \(medicine.aisle)"
+            )
+            
+            try await medicineService.addHistoryEntry(entry)
+            
+            await MainActor.run {
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.isLoading = false
+                self.errorMessage = error.localizedDescription
+            }
+            throw error
+        }
+    }
+    
+    func deleteMedicine(id: String, medicineName: String, user: String) {
+        Task { @MainActor in
+            self.isLoading = true
+            self.errorMessage = nil
+            
+            do {
+                try await medicineService.deleteMedicine(id: id)
+                
+                // Add history entry
+                let entry = HistoryEntry(
                     medicineId: id,
+                    user: user,
+                    action: "Deleted \(medicineName)",
                     details: "Medicine removed from inventory"
                 )
                 
-                // Remove from local array (snapshot listener will handle this, but for immediate UI update)
+                try await medicineService.addHistoryEntry(entry)
+                
+                // Remove from local array
                 if let index = self.medicines.firstIndex(where: { $0.id == id }) {
                     self.medicines.remove(at: index)
                 }
+                self.isLoading = false
+            } catch {
+                self.isLoading = false
+                self.errorMessage = error.localizedDescription
+                print("Error deleting medicine: \(error)")
             }
         }
     }
-
-    func increaseStock(_ medicine: Medicine, user: String) {
-        updateStock(medicine, by: 1, user: user)
-    }
-
-    func decreaseStock(_ medicine: Medicine, user: String) {
-        updateStock(medicine, by: -1, user: user)
-    }
-
-    func updateStock(_ medicine: Medicine, by amount: Int, user: String) {
-        guard let id = medicine.id else { return }
-        
-        let oldStock = medicine.stock
-        let newStock = oldStock + amount
-        
-        db.collection("medicines").document(id).updateData([
-            "stock": newStock
-        ]) { [weak self] error in
-            guard let self = self else { return }
-            
-            if let error = error {
-                print("Error updating stock: \(error)")
-            } else {
-                if let index = self.medicines.firstIndex(where: { $0.id == id }) {
-                    self.medicines[index].stock = newStock
-                }
-                
-                self.addHistory(
-                    action: "\(amount > 0 ? "Increased" : "Decreased") stock of \(medicine.name) by \(abs(amount))",
-                    user: user,
-                    medicineId: id,
-                    details: "Stock changed from \(oldStock) to \(newStock)"
-                )
-            }
-        }
-    }
-
+    
     func updateMedicine(_ medicine: Medicine, user: String) {
         guard let id = medicine.id else { return }
         
-        // Find the original medicine to compare
+        // Find the original medicine
         guard let originalMedicine = medicines.first(where: { $0.id == id }) else {
-            // If not found, just do a simple update
-            do {
-                try db.collection("medicines").document(id).setData(from: medicine)
-            } catch let error {
-                print("Error updating document: \(error)")
+            Task {
+                try? await medicineService.updateMedicine(medicine)
             }
             return
         }
         
-        // Track what changed
+        // Track changes
         var changes: [String] = []
         
         if originalMedicine.name != medicine.name {
@@ -163,72 +135,92 @@ class MedicineStockViewModel: ObservableObject {
             changes.append("Aisle: '\(originalMedicine.aisle)' → '\(medicine.aisle)'")
         }
         
-        // Only update if there are actual changes
         guard !changes.isEmpty else { return }
         
-        do {
-            try db.collection("medicines").document(id).setData(from: medicine)
+        Task { @MainActor in
+            self.isLoading = true
+            self.errorMessage = nil
             
-            let action = changes.count == 1 ? "Updated \(medicine.name)" : "Updated \(medicine.name) (multiple fields)"
-            let details = changes.joined(separator: "\n")
-            
-            addHistory(
-                action: action,
-                user: user,
-                medicineId: id,
-                details: details
-            )
-        } catch let error {
-            print("Error updating document: \(error)")
-        }
-    }
-
-    private func addHistory(action: String, user: String, medicineId: String, details: String) {
-        let history = HistoryEntry(medicineId: medicineId, user: user, action: action, details: details)
-        do {
-            try db.collection("history").document(history.id ?? UUID().uuidString).setData(from: history)
-        } catch let error {
-            print("Error adding history: \(error)")
-        }
-    }
-
-    func fetchHistory(for medicine: Medicine) {
-            guard let medicineId = medicine.id else { return }
-            
-            // Guard against fetching when not authenticated
-            guard Auth.auth().currentUser != nil else {
-                print("Not authenticated - skipping fetch")
-                return
+            do {
+                try await medicineService.updateMedicine(medicine)
+                
+                let action = changes.count == 1 ? "Updated \(medicine.name)" : "Updated \(medicine.name) (multiple fields)"
+                let details = changes.joined(separator: "\n")
+                
+                let entry = HistoryEntry(
+                    medicineId: id,
+                    user: user,
+                    action: action,
+                    details: details
+                )
+                
+                try await medicineService.addHistoryEntry(entry)
+                
+                self.isLoading = false
+            } catch {
+                self.isLoading = false
+                self.errorMessage = error.localizedDescription
+                print("Error updating medicine: \(error)")
             }
-            
-            historyListener?.remove()
-            
-        historyListener = db.collection("history").whereField("medicineId", isEqualTo: medicineId).addSnapshotListener { [weak self] (querySnapshot, error) in
-            guard let self = self else { return }
-            
-            if let error = error {
-                print("Error getting history: \(error)")
-                return
-            }
-            self.history = querySnapshot?.documents.compactMap { document in
-                try? document.data(as: HistoryEntry.self)
-            } ?? []
         }
     }
     
-    func stopListening() {
-        medicinesListener?.remove()
-        historyListener?.remove()
-        medicinesListener = nil
-        historyListener = nil
+    // MARK: - Stock Management
+    
+    func increaseStock(_ medicine: Medicine, user: String) {
+        updateStock(medicine, by: 1, user: user)
+    }
+    
+    func decreaseStock(_ medicine: Medicine, user: String) {
+        updateStock(medicine, by: -1, user: user)
+    }
+    
+    private func updateStock(_ medicine: Medicine, by amount: Int, user: String) {
+        guard let id = medicine.id else { return }
         
-        // Clear data
+        let oldStock = medicine.stock
+        let newStock = oldStock + amount
+        
+        Task { @MainActor in
+            self.isLoading = true
+            self.errorMessage = nil
+            
+            do {
+                try await medicineService.updateStock(medicineId: id, newStock: newStock)
+                
+                // Update local array
+                if let index = self.medicines.firstIndex(where: { $0.id == id }) {
+                    self.medicines[index].stock = newStock
+                }
+                
+                let entry = HistoryEntry(
+                    medicineId: id,
+                    user: user,
+                    action: "\(amount > 0 ? "Increased" : "Decreased") stock of \(medicine.name) by \(abs(amount))",
+                    details: "Stock changed from \(oldStock) to \(newStock)"
+                )
+                
+                try await medicineService.addHistoryEntry(entry)
+                
+                self.isLoading = false
+            } catch {
+                self.isLoading = false
+                self.errorMessage = error.localizedDescription
+                print("Error updating stock: \(error)")
+            }
+        }
+    }
+    
+    // MARK: - Cleanup
+    
+    func stopListening() {
+        medicineService.stopAllListeners()
         medicines = []
         aisles = []
         history = []
     }
     
     deinit {
-        stopListening()
+        medicineService.stopAllListeners()
     }
 }
