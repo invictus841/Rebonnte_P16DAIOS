@@ -34,11 +34,20 @@ enum MedicineServiceError: LocalizedError {
 // MARK: - Service Protocol
 
 protocol MedicineServiceProtocol {
-    /// Start listening to medicine changes
-    func startMedicinesListener(completion: @escaping ([Medicine]) -> Void)
+    /// Start listening to medicine changes with optional limit
+    func startMedicinesListener(limit: Int, completion: @escaping ([Medicine]) -> Void)
     
-    /// Start listening to history changes for a specific medicine
-    func startHistoryListener(for medicineId: String, completion: @escaping ([HistoryEntry]) -> Void)
+    /// Start listening to ALL medicines (no limit) - for building aisles list
+    func startAllMedicinesListener(completion: @escaping ([Medicine]) -> Void)
+    
+    /// Start listening to medicines for a specific aisle
+    func startAisleMedicinesListener(aisle: String, completion: @escaping ([Medicine]) -> Void)
+    
+    /// Start listening to history changes for a specific medicine with optional limit
+    func startHistoryListener(for medicineId: String, limit: Int, completion: @escaping ([HistoryEntry]) -> Void)
+    
+    /// Stop history listener only
+    func stopHistoryListener()
     
     /// Stop all listeners
     func stopAllListeners()
@@ -65,10 +74,11 @@ class FirebaseMedicineService: MedicineServiceProtocol {
     private let db = Firestore.firestore()
     private var medicinesListener: ListenerRegistration?
     private var historyListener: ListenerRegistration?
+    private var aisleListener: ListenerRegistration?
     
     // MARK: - Listeners
     
-    func startMedicinesListener(completion: @escaping ([Medicine]) -> Void) {
+    func startMedicinesListener(limit: Int, completion: @escaping ([Medicine]) -> Void) {
         guard Auth.auth().currentUser != nil else {
             print("Not authenticated - skipping listener")
             return
@@ -76,34 +86,107 @@ class FirebaseMedicineService: MedicineServiceProtocol {
         
         // Remove old listener
         medicinesListener?.remove()
+        medicinesListener = nil
         
-        medicinesListener = db.collection("medicines").addSnapshotListener { querySnapshot, error in
-            if let error = error {
-                print("Error listening to medicines: \(error)")
-                completion([])
-                return
+        medicinesListener = db.collection("medicines")
+            .order(by: "name")  // Sort alphabetically for consistent ordering
+            .limit(to: limit)    // Dynamic limit for lazy loading
+            .addSnapshotListener { [weak self] querySnapshot, error in
+                guard self != nil else { return }
+                
+                if let error = error {
+                    print("Error listening to medicines: \(error)")
+                    completion([])
+                    return
+                }
+                
+                let medicines = querySnapshot?.documents.compactMap { document in
+                    try? document.data(as: Medicine.self)
+                } ?? []
+                
+                print("📊 Loaded \(medicines.count) medicines (limit: \(limit))")
+                completion(medicines)
             }
-            
-            let medicines = querySnapshot?.documents.compactMap { document in
-                try? document.data(as: Medicine.self)
-            } ?? []
-            
-            completion(medicines)
-        }
     }
     
-    func startHistoryListener(for medicineId: String, completion: @escaping ([HistoryEntry]) -> Void) {
+    func startAllMedicinesListener(completion: @escaping ([Medicine]) -> Void) {
         guard Auth.auth().currentUser != nil else {
             print("Not authenticated - skipping listener")
             return
         }
         
         // Remove old listener
-        historyListener?.remove()
+        medicinesListener?.remove()
+        medicinesListener = nil
+        
+        // Load ALL medicines (no limit) to get complete aisles list
+        medicinesListener = db.collection("medicines")
+            .order(by: "name")  // Sort alphabetically
+            .addSnapshotListener { [weak self] querySnapshot, error in
+                guard self != nil else { return }
+                
+                if let error = error {
+                    print("Error listening to all medicines: \(error)")
+                    completion([])
+                    return
+                }
+                
+                let medicines = querySnapshot?.documents.compactMap { document in
+                    try? document.data(as: Medicine.self)
+                } ?? []
+                
+                print("📊 Loaded ALL medicines: \(medicines.count) (for aisles list)")
+                completion(medicines)
+            }
+    }
+    
+    func startAisleMedicinesListener(aisle: String, completion: @escaping ([Medicine]) -> Void) {
+        guard Auth.auth().currentUser != nil else {
+            print("Not authenticated - skipping listener")
+            return
+        }
+        
+        // Remove old aisle listener
+        aisleListener?.remove()
+        aisleListener = nil
+        
+        aisleListener = db.collection("medicines")
+            .whereField("aisle", isEqualTo: aisle)
+            .order(by: "name")  // Sort alphabetically
+            .addSnapshotListener { [weak self] querySnapshot, error in
+                guard self != nil else { return }
+                
+                if let error = error {
+                    print("Error listening to aisle medicines: \(error)")
+                    completion([])
+                    return
+                }
+                
+                let medicines = querySnapshot?.documents.compactMap { document in
+                    try? document.data(as: Medicine.self)
+                } ?? []
+                
+                print("📊 Loaded \(medicines.count) medicines for aisle '\(aisle)'")
+                completion(medicines)
+            }
+    }
+    
+    func startHistoryListener(for medicineId: String, limit: Int, completion: @escaping ([HistoryEntry]) -> Void) {
+        guard Auth.auth().currentUser != nil else {
+            print("Not authenticated - skipping listener")
+            return
+        }
+        
+        // Remove old listener
+        stopHistoryListener()
         
         historyListener = db.collection("history")
             .whereField("medicineId", isEqualTo: medicineId)
-            .addSnapshotListener { querySnapshot, error in
+            .order(by: "timestamp", descending: true)
+            .limit(to: limit)  // Dynamic limit for lazy loading
+            .addSnapshotListener { [weak self] querySnapshot, error in
+                guard self != nil else { return }
+                
                 if let error = error {
                     print("Error listening to history: \(error)")
                     completion([])
@@ -114,15 +197,27 @@ class FirebaseMedicineService: MedicineServiceProtocol {
                     try? document.data(as: HistoryEntry.self)
                 } ?? []
                 
+                print("📊 Loaded \(history.count) history entries (limit: \(limit))")
                 completion(history)
             }
+    }
+    
+    func stopHistoryListener() {
+        historyListener?.remove()
+        historyListener = nil
     }
     
     func stopAllListeners() {
         medicinesListener?.remove()
         medicinesListener = nil
+        
+        aisleListener?.remove()
+        aisleListener = nil
+        
         historyListener?.remove()
         historyListener = nil
+        
+        print("All Firestore listeners stopped")
     }
     
     // MARK: - CRUD Operations
@@ -132,10 +227,8 @@ class FirebaseMedicineService: MedicineServiceProtocol {
             throw MedicineServiceError.notAuthenticated
         }
         
-        // Generate a new document ID
         let docRef = db.collection("medicines").document()
         
-        // Create medicine with the generated ID
         var newMedicine = medicine
         newMedicine.id = docRef.documentID
         
@@ -204,6 +297,7 @@ class FirebaseMedicineService: MedicineServiceProtocol {
     }
     
     deinit {
+        print("FirebaseMedicineService deinitialized")
         stopAllListeners()
     }
 }

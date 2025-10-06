@@ -14,30 +14,33 @@ struct AisleListView: View {
                                 .foregroundColor(.primaryAccent)
                                 .font(.title3)
                             
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(aisle)
-                                    .font(.headline)
-                                
-                                Text("\(medicineCount(for: aisle)) medicines")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
+                            Text(aisle)
+                                .font(.headline)
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 8)
                     }
+                }
+                
+                // Info Footer
+                if !viewModel.aisles.isEmpty {
+                    HStack(spacing: 8) {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                        Text("\(viewModel.aisles.count) aisle\(viewModel.aisles.count == 1 ? "" : "s")")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
                 }
             }
             .navigationBarTitle("Aisles")
         }
         .onAppear {
+            // Fetch aisles list (loads all medicines to extract unique aisles)
             viewModel.fetchAisles()
         }
-    }
-    
-    // MARK: - Helper
-    
-    private func medicineCount(for aisle: String) -> Int {
-        viewModel.medicines.filter { $0.aisle == aisle }.count
     }
 }
 

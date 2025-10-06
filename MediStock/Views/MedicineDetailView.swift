@@ -20,7 +20,6 @@ struct MedicineDetailView: View {
         self.originalMedicine = medicine
         self._editedMedicine = State(initialValue: medicine)
         
-        // Extract number from "Aisle 5" -> 5
         let components = medicine.aisle.components(separatedBy: " ")
         let number = Int(components.last ?? "1") ?? 1
         self._aisleNumber = State(initialValue: number)
@@ -28,7 +27,6 @@ struct MedicineDetailView: View {
 
     var body: some View {
         ZStack {
-            // Main content
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     // Title
@@ -64,7 +62,6 @@ struct MedicineDetailView: View {
                             }
                         }
                         
-                        // Show Save/Cancel buttons when fields are edited
                         if isDirty {
                             HStack(spacing: 12) {
                                 PrimaryButton("Save Changes") {
@@ -124,9 +121,33 @@ struct MedicineDetailView: View {
 
                     // History Section
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("History")
-                            .font(.headline)
-                            .padding(.top, 20)
+                        HStack {
+                            Text("History")
+                                .font(.headline)
+                            
+                            Spacer()
+                            
+                            // Page Size Selector
+                            HStack(spacing: 4) {
+                                Text("Show:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                Picker("History Page Size", selection: $viewModel.historyPageSize) {
+                                    Text("5").tag(5)
+                                    Text("10").tag(10)
+                                    Text("20").tag(20)
+                                }
+                                .pickerStyle(SegmentedPickerStyle())
+                                .frame(maxWidth: 150)
+                                .onChange(of: viewModel.historyPageSize) { _, _ in
+                                    // Reset and refetch with new page size
+                                    viewModel.historyLimit = viewModel.historyPageSize
+                                    viewModel.fetchHistory(for: originalMedicine)
+                                }
+                            }
+                        }
+                        .padding(.top, 20)
                         
                         if viewModel.history.filter({ $0.medicineId == originalMedicine.id }).isEmpty {
                             EmptyStateView(
@@ -137,9 +158,9 @@ struct MedicineDetailView: View {
                             .frame(maxWidth: .infinity)
                             .padding()
                         } else {
-                            ForEach(viewModel.history.filter { $0.medicineId == originalMedicine.id }.sorted(by: { $0.timestamp > $1.timestamp }), id: \.id) { entry in
+                            // Show recent history entries (already sorted by Firebase)
+                            ForEach(viewModel.history.filter { $0.medicineId == originalMedicine.id }, id: \.id) { entry in
                                 VStack(alignment: .leading, spacing: 8) {
-                                    // Action header
                                     HStack {
                                         Image(systemName: iconForAction(entry.action))
                                             .foregroundColor(colorForAction(entry.action))
@@ -156,7 +177,6 @@ struct MedicineDetailView: View {
                                             .foregroundColor(.secondary)
                                     }
                                     
-                                    // User
                                     HStack(spacing: 4) {
                                         Image(systemName: "person.circle.fill")
                                             .font(.caption2)
@@ -166,7 +186,6 @@ struct MedicineDetailView: View {
                                             .foregroundColor(.secondary)
                                     }
                                     
-                                    // Details
                                     if !entry.details.isEmpty {
                                         Text(entry.details)
                                             .font(.caption)
@@ -178,7 +197,28 @@ struct MedicineDetailView: View {
                                 .padding()
                                 .background(Color(.systemGray6))
                                 .cornerRadius(10)
+                                .transition(.opacity.combined(with: .move(edge: .bottom)))
                             }
+                            
+                            // Load More button - show if we have exactly the limit (might be more to load)
+                            if viewModel.history.count == viewModel.historyLimit {
+                                SecondaryButton("Load More (\(viewModel.historyPageSize) more)") {
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        viewModel.loadMoreHistory(for: originalMedicine)
+                                    }
+                                }
+                                .padding(.top, 8)
+                            }
+                            
+                            // Info text
+                            HStack(spacing: 8) {
+                                Image(systemName: "info.circle")
+                                    .foregroundColor(.secondary)
+                                Text("Showing \(viewModel.history.count) most recent change\(viewModel.history.count == 1 ? "" : "s")")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.top, 8)
                         }
                     }
                     .padding(.horizontal)
@@ -186,7 +226,6 @@ struct MedicineDetailView: View {
                 }
             }
             
-            // Success message overlay - last element in ZStack
             if showSuccessMessage {
                 VStack {
                     HStack(spacing: 12) {
@@ -216,6 +255,10 @@ struct MedicineDetailView: View {
         .navigationBarTitle("Medicine Details", displayMode: .inline)
         .onAppear {
             viewModel.fetchHistory(for: originalMedicine)
+        }
+        .onDisappear {
+            // CRITICAL FIX: Clean up history listener when leaving view
+            viewModel.clearHistory()
         }
     }
     
@@ -260,11 +303,11 @@ struct MedicineDetailView: View {
         
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         
-        // Show success message
         showSuccessMessage = true
         
-        // Hide after 2 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        // For SwiftUI views (structs), use Task instead of weak self
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
             showSuccessMessage = false
         }
     }
@@ -272,7 +315,6 @@ struct MedicineDetailView: View {
     private func cancelChanges() {
         editedMedicine = originalMedicine
         
-        // Reset aisle number too
         let components = originalMedicine.aisle.components(separatedBy: " ")
         aisleNumber = Int(components.last ?? "1") ?? 1
         

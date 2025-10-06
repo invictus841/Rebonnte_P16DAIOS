@@ -49,7 +49,6 @@ class AuthViewModel: ObservableObject {
         let result = authService.signOut()
         switch result {
         case .success:
-            // Auth listener will handle updating the user state
             break
         case .failure(let error):
             errorMessage = error.localizedDescription
@@ -64,7 +63,8 @@ class AuthViewModel: ObservableObject {
     
     private func startListening() {
         authService.startAuthListener { [weak self] user in
-            Task { @MainActor in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
                 self?.currentUser = user
                 self?.isAuthenticated = user != nil
             }
@@ -148,6 +148,7 @@ class AuthViewModel: ObservableObject {
     // MARK: - Cleanup
     
     deinit {
+        print("AuthViewModel deinitialized")
         authService.stopAuthListener()
     }
 }

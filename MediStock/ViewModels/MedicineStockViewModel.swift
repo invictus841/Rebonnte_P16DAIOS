@@ -6,13 +6,21 @@ class MedicineStockViewModel: ObservableObject {
     
     @Published var medicines: [Medicine] = []
     @Published var aisles: [String] = []
+    @Published var aisleMedicines: [Medicine] = []  // Medicines for a specific aisle
     @Published var history: [HistoryEntry] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var historyLimit = 5   // Default: 5 history entries
+    @Published var medicinesLimit = 10  // Default: 10 medicines
+    @Published var historyPageSize = 5  // User can change this (5/10/20)
+    @Published var medicinesPageSize = 10  // User can change this (5/10/20)
     
     // MARK: - Private Properties
     
     private let medicineService: MedicineServiceProtocol
+    
+    // Track which medicine's history is currently being observed
+    private var currentHistoryMedicineId: String?
     
     // MARK: - Initialization
     
@@ -23,18 +31,48 @@ class MedicineStockViewModel: ObservableObject {
     // MARK: - Fetch Methods
     
     func fetchMedicines() {
-        medicineService.startMedicinesListener { [weak self] medicines in
-            Task { @MainActor in
+        medicineService.startMedicinesListener(limit: medicinesLimit) { [weak self] medicines in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
                 self?.medicines = medicines
+                print("✅ Medicines loaded: \(medicines.count) (limit: \(self?.medicinesLimit ?? 10))")
+            }
+        }
+    }
+    
+    func loadMoreMedicines() {
+        // Increase limit by page size
+        medicinesLimit += medicinesPageSize
+        
+        // Restart listener with new limit
+        medicineService.startMedicinesListener(limit: medicinesLimit) { [weak self] medicines in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
+                self?.medicines = medicines
+                print("✅ Loaded more medicines: \(medicines.count) entries")
             }
         }
     }
     
     func fetchAisles() {
-        medicineService.startMedicinesListener { [weak self] medicines in
-            Task { @MainActor in
+        // Load ALL medicines (no limit) to get complete aisles list
+        medicineService.startAllMedicinesListener { [weak self] medicines in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
                 self?.medicines = medicines
                 self?.aisles = Array(Set(medicines.map { $0.aisle })).sorted()
+                print("✅ Aisles extracted from \(medicines.count) medicines: \(self?.aisles.count ?? 0) aisles found")
+            }
+        }
+    }
+    
+    // NEW: Fetch medicines for a specific aisle (Firebase-side filtering)
+    func fetchMedicinesForAisle(_ aisle: String) {
+        medicineService.startAisleMedicinesListener(aisle: aisle) { [weak self] medicines in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
+                self?.aisleMedicines = medicines
+                print("✅ Aisle medicines loaded: \(medicines.count) for '\(aisle)'")
             }
         }
     }
@@ -42,25 +80,75 @@ class MedicineStockViewModel: ObservableObject {
     func fetchHistory(for medicine: Medicine) {
         guard let medicineId = medicine.id else { return }
         
-        medicineService.startHistoryListener(for: medicineId) { [weak self] history in
-            Task { @MainActor in
+        // Don't create a new listener if we're already listening to this medicine
+        if currentHistoryMedicineId == medicineId {
+            return
+        }
+        
+        // Reset limit to initial page size when viewing new medicine
+        historyLimit = historyPageSize
+        
+        // Clear old history before fetching new one
+        Task { @MainActor in
+            self.history = []
+        }
+        
+        currentHistoryMedicineId = medicineId
+        
+        medicineService.startHistoryListener(for: medicineId, limit: historyLimit) { [weak self] history in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
+                // Only update if we're still interested in this medicine
+                guard self?.currentHistoryMedicineId == medicineId else { return }
+                
+                // History is already sorted by Firebase query (newest first)
                 self?.history = history
+                
+                print("✅ History loaded: \(history.count) entries (limit: \(self?.historyLimit ?? 5))")
             }
         }
+    }
+    
+    // Load more history entries
+    func loadMoreHistory(for medicine: Medicine) {
+        guard let medicineId = medicine.id,
+              medicineId == currentHistoryMedicineId else { return }
+        
+        // Increase limit by page size
+        historyLimit += historyPageSize
+        
+        // Restart listener with new limit
+        medicineService.startHistoryListener(for: medicineId, limit: historyLimit) { [weak self] history in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
+                guard self?.currentHistoryMedicineId == medicineId else { return }
+                self?.history = history
+                print("✅ Loaded more history: \(history.count) entries")
+            }
+        }
+    }
+    
+    // Clear history when leaving detail view
+    func clearHistory() {
+        Task { @MainActor in
+            self.history = []
+            self.historyLimit = historyPageSize  // Reset to page size
+        }
+        currentHistoryMedicineId = nil
+        medicineService.stopHistoryListener()
     }
     
     // MARK: - CRUD Operations
     
     func addMedicine(_ medicine: Medicine, user: String) async throws {
-        await MainActor.run {
-            self.isLoading = true
-            self.errorMessage = nil
+        await MainActor.run { [weak self] in
+            self?.isLoading = true
+            self?.errorMessage = nil
         }
         
         do {
             let medicineId = try await medicineService.addMedicine(medicine)
             
-            // Add history entry
             let entry = HistoryEntry(
                 medicineId: medicineId,
                 user: user,
@@ -70,27 +158,26 @@ class MedicineStockViewModel: ObservableObject {
             
             try await medicineService.addHistoryEntry(entry)
             
-            await MainActor.run {
-                self.isLoading = false
+            await MainActor.run { [weak self] in
+                self?.isLoading = false
             }
         } catch {
-            await MainActor.run {
-                self.isLoading = false
-                self.errorMessage = error.localizedDescription
+            await MainActor.run { [weak self] in
+                self?.isLoading = false
+                self?.errorMessage = error.localizedDescription
             }
             throw error
         }
     }
     
     func deleteMedicine(id: String, medicineName: String, user: String) {
-        Task { @MainActor in
-            self.isLoading = true
-            self.errorMessage = nil
+        Task { @MainActor [weak self] in
+            self?.isLoading = true
+            self?.errorMessage = nil
             
             do {
-                try await medicineService.deleteMedicine(id: id)
+                try await self?.medicineService.deleteMedicine(id: id)
                 
-                // Add history entry
                 let entry = HistoryEntry(
                     medicineId: id,
                     user: user,
@@ -98,16 +185,15 @@ class MedicineStockViewModel: ObservableObject {
                     details: "Medicine removed from inventory"
                 )
                 
-                try await medicineService.addHistoryEntry(entry)
+                try await self?.medicineService.addHistoryEntry(entry)
                 
-                // Remove from local array
-                if let index = self.medicines.firstIndex(where: { $0.id == id }) {
-                    self.medicines.remove(at: index)
+                if let index = self?.medicines.firstIndex(where: { $0.id == id }) {
+                    self?.medicines.remove(at: index)
                 }
-                self.isLoading = false
+                self?.isLoading = false
             } catch {
-                self.isLoading = false
-                self.errorMessage = error.localizedDescription
+                self?.isLoading = false
+                self?.errorMessage = error.localizedDescription
                 print("Error deleting medicine: \(error)")
             }
         }
@@ -115,8 +201,6 @@ class MedicineStockViewModel: ObservableObject {
     
     func updateMedicine(_ medicine: Medicine, user: String) {
         guard let id = medicine.id else { return }
-        
-        // Find the original medicine
         guard let originalMedicine = medicines.first(where: { $0.id == id }) else {
             Task {
                 try? await medicineService.updateMedicine(medicine)
@@ -124,7 +208,6 @@ class MedicineStockViewModel: ObservableObject {
             return
         }
         
-        // Track changes
         var changes: [String] = []
         
         if originalMedicine.name != medicine.name {
@@ -137,12 +220,12 @@ class MedicineStockViewModel: ObservableObject {
         
         guard !changes.isEmpty else { return }
         
-        Task { @MainActor in
-            self.isLoading = true
-            self.errorMessage = nil
+        Task { @MainActor [weak self] in
+            self?.isLoading = true
+            self?.errorMessage = nil
             
             do {
-                try await medicineService.updateMedicine(medicine)
+                try await self?.medicineService.updateMedicine(medicine)
                 
                 let action = changes.count == 1 ? "Updated \(medicine.name)" : "Updated \(medicine.name) (multiple fields)"
                 let details = changes.joined(separator: "\n")
@@ -154,12 +237,12 @@ class MedicineStockViewModel: ObservableObject {
                     details: details
                 )
                 
-                try await medicineService.addHistoryEntry(entry)
+                try await self?.medicineService.addHistoryEntry(entry)
                 
-                self.isLoading = false
+                self?.isLoading = false
             } catch {
-                self.isLoading = false
-                self.errorMessage = error.localizedDescription
+                self?.isLoading = false
+                self?.errorMessage = error.localizedDescription
                 print("Error updating medicine: \(error)")
             }
         }
@@ -181,16 +264,15 @@ class MedicineStockViewModel: ObservableObject {
         let oldStock = medicine.stock
         let newStock = oldStock + amount
         
-        Task { @MainActor in
-            self.isLoading = true
-            self.errorMessage = nil
+        Task { @MainActor [weak self] in
+            self?.isLoading = true
+            self?.errorMessage = nil
             
             do {
-                try await medicineService.updateStock(medicineId: id, newStock: newStock)
+                try await self?.medicineService.updateStock(medicineId: id, newStock: newStock)
                 
-                // Update local array
-                if let index = self.medicines.firstIndex(where: { $0.id == id }) {
-                    self.medicines[index].stock = newStock
+                if let index = self?.medicines.firstIndex(where: { $0.id == id }) {
+                    self?.medicines[index].stock = newStock
                 }
                 
                 let entry = HistoryEntry(
@@ -200,12 +282,12 @@ class MedicineStockViewModel: ObservableObject {
                     details: "Stock changed from \(oldStock) to \(newStock)"
                 )
                 
-                try await medicineService.addHistoryEntry(entry)
+                try await self?.medicineService.addHistoryEntry(entry)
                 
-                self.isLoading = false
+                self?.isLoading = false
             } catch {
-                self.isLoading = false
-                self.errorMessage = error.localizedDescription
+                self?.isLoading = false
+                self?.errorMessage = error.localizedDescription
                 print("Error updating stock: \(error)")
             }
         }
@@ -215,12 +297,18 @@ class MedicineStockViewModel: ObservableObject {
     
     func stopListening() {
         medicineService.stopAllListeners()
-        medicines = []
-        aisles = []
-        history = []
+        Task { @MainActor in
+            self.medicines = []
+            self.aisles = []
+            self.history = []
+            self.medicinesLimit = medicinesPageSize  // Reset to page size
+            self.historyLimit = historyPageSize      // Reset to page size
+        }
+        currentHistoryMedicineId = nil
     }
     
     deinit {
+        print("MedicineStockViewModel deinitialized")
         medicineService.stopAllListeners()
     }
 }
