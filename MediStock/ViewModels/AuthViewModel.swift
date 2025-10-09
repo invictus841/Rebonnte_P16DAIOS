@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Combine
+// NO FIREBASE IMPORTS! 🚫
 
 @MainActor
 class AuthViewModel: ObservableObject {
@@ -18,11 +18,11 @@ class AuthViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isAuthenticated = false
     
-    // MARK: - Private Properties
+    // MARK: - Dependencies (Using Protocol!)
     
     private let authService: AuthServiceProtocol
     
-    // MARK: - Initialization
+    // MARK: - Initialization with Dependency Injection
     
     init(authService: AuthServiceProtocol = FirebaseAuthService()) {
         self.authService = authService
@@ -32,50 +32,10 @@ class AuthViewModel: ObservableObject {
     // MARK: - Public Methods
     
     func signIn(email: String, password: String) async {
-        await performAuthAction {
-            await authService.signIn(email: email, password: password)
-        }
-    }
-    
-    func signUp(email: String, password: String) async {
-        await performAuthAction {
-            await authService.signUp(email: email, password: password)
-        }
-    }
-    
-    func signOut() {
-        clearError()
-        
-        let result = authService.signOut()
-        switch result {
-        case .success:
-            break
-        case .failure(let error):
-            errorMessage = error.localizedDescription
-        }
-    }
-    
-    func clearError() {
-        errorMessage = nil
-    }
-    
-    // MARK: - Private Methods
-    
-    private func startListening() {
-        authService.startAuthListener { [weak self] user in
-            guard let self = self else { return }
-            Task { @MainActor [weak self] in
-                self?.currentUser = user
-                self?.isAuthenticated = user != nil
-            }
-        }
-    }
-    
-    private func performAuthAction(_ action: () async -> AuthResult) async {
         isLoading = true
         errorMessage = nil
         
-        let result = await action()
+        let result = await authService.signIn(email: email, password: password)
         
         switch result {
         case .success(let user):
@@ -90,65 +50,70 @@ class AuthViewModel: ObservableObject {
         isLoading = false
     }
     
-    // MARK: - Validation Helpers
-    
-    func validateEmail(_ email: String) -> String? {
-        if email.isEmpty {
-            return "Email is required"
+    func signUp(email: String, password: String) async {
+        isLoading = true
+        errorMessage = nil
+        
+        let result = await authService.signUp(email: email, password: password)
+        
+        switch result {
+        case .success(let user):
+            currentUser = user
+            isAuthenticated = true
+            errorMessage = nil
+        case .failure(let error):
+            errorMessage = error.localizedDescription
+            isAuthenticated = false
         }
         
-        let emailRegex = "^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
-        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
-        
-        if !emailPredicate.evaluate(with: email) {
-            return "Please enter a valid email address"
-        }
-        
-        return nil
+        isLoading = false
     }
     
-    func validatePassword(_ password: String) -> String? {
-        if password.isEmpty {
-            return "Password is required"
-        }
+    func signOut() {
+        clearError()
         
-        if password.count < 6 {
-            return "Password must be at least 6 characters"
+        let result = authService.signOut()
+        switch result {
+        case .success:
+            currentUser = nil
+            isAuthenticated = false
+        case .failure(let error):
+            errorMessage = error.localizedDescription
         }
-        
-        return nil
     }
     
-    func validateSignInForm(email: String, password: String) -> String? {
-        if let emailError = validateEmail(email) {
-            return emailError
+    func clearError() {
+        errorMessage = nil
+    }
+    
+    // MARK: - Private Methods
+    
+    private func startListening() {
+        authService.startAuthListener { [weak self] user in
+            Task { @MainActor [weak self] in
+                self?.currentUser = user
+                self?.isAuthenticated = user != nil
+            }
         }
-        
-        if let passwordError = validatePassword(password) {
-            return passwordError
-        }
-        
-        return nil
     }
     
     // MARK: - Convenience Properties
     
     var userEmail: String {
-        return currentUser?.email ?? ""
+        currentUser?.email ?? ""
     }
     
     var userUID: String {
-        return currentUser?.uid ?? ""
+        currentUser?.uid ?? ""
     }
     
     var displayName: String {
-        return currentUser?.email ?? "User"
+        currentUser?.email ?? "User"
     }
     
     // MARK: - Cleanup
     
     deinit {
-        print("AuthViewModel deinitialized")
         authService.stopAuthListener()
     }
 }

@@ -18,11 +18,7 @@ struct MediStockApp: App {
             ContentView()
                 .environmentObject(authViewModel)
                 .environmentObject(medicineViewModel)
-                .onChange(of: authViewModel.isAuthenticated) { _, isAuthenticated in
-                    if !isAuthenticated {
-                        medicineViewModel.stopListening()
-                    }
-                }
+                .preferredColorScheme(.none) // Respect system setting
         }
     }
 }

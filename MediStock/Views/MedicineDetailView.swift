@@ -1,332 +1,337 @@
 import SwiftUI
 
 struct MedicineDetailView: View {
-    let originalMedicine: Medicine
-    @State private var editedMedicine: Medicine
-    @State private var aisleNumber: Int
+    let medicine: Medicine
+    
+    @State private var stockAdjustment = 1
+    @State private var isAddMode = true
+    @State private var editedName: String
+    @State private var editedAisleNumber: Int
     @State private var showSuccessMessage = false
+    @State private var showStockPicker = false
     
     @EnvironmentObject var viewModel: MedicineStockViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
-    
     @Environment(\.dismiss) private var dismiss
     
-    private var isDirty: Bool {
-        editedMedicine.name != originalMedicine.name ||
-        aisleNumber != (Int(originalMedicine.aisle.components(separatedBy: " ").last ?? "1") ?? 1)
+    // Get the current version of this medicine from the ViewModel
+    private var currentMedicine: Medicine? {
+        viewModel.medicine(withId: medicine.id ?? "")
     }
     
     init(medicine: Medicine) {
-        self.originalMedicine = medicine
-        self._editedMedicine = State(initialValue: medicine)
+        self.medicine = medicine
+        self._editedName = State(initialValue: medicine.name)
         
-        let components = medicine.aisle.components(separatedBy: " ")
-        let number = Int(components.last ?? "1") ?? 1
-        self._aisleNumber = State(initialValue: number)
+        let aisleNum = Int(medicine.aisle.replacingOccurrences(of: "Aisle ", with: "")) ?? 1
+        self._editedAisleNumber = State(initialValue: aisleNum)
     }
-
+    
     var body: some View {
-        ZStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Title
-                    Text(originalMedicine.name)
-                        .font(.largeTitle)
-                        .padding(.top, 20)
-                        .padding(.horizontal)
-
-                    // Medicine Name
-                    VStack(alignment: .leading, spacing: 16) {
-                        CustomTextField(
-                            "Medicine Name",
-                            text: $editedMedicine.name
-                        )
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                // Medicine Info Card
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Medicine Information")
+                        .font(.headline)
+                    
+                    CustomTextField("Name", text: $editedName)
+                    
+                    HStack {
+                        Text("Aisle")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                         
-                        HStack {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Aisle")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.secondary)
-                                
-                                Picker("Aisle", selection: $aisleNumber) {
-                                    ForEach(1..<100) { number in
-                                        Text("Aisle \(number)").tag(number)
-                                    }
-                                }
-                                .pickerStyle(.wheel)
-                                .frame(height: 120)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(Color(.systemGray6))
-                                )
+                        Picker("Aisle", selection: $editedAisleNumber) {
+                            ForEach(1..<100) { num in
+                                Text("Aisle \(num)").tag(num)
                             }
                         }
-                        
-                        if isDirty {
-                            HStack(spacing: 12) {
-                                PrimaryButton("Save Changes") {
-                                    saveChanges()
-                                }
-                                
-                                SecondaryButton("Cancel") {
-                                    cancelChanges()
-                                }
-                            }
-                            .transition(.move(edge: .top).combined(with: .opacity))
+                        .pickerStyle(MenuPickerStyle())
+                    }
+                    
+                    // Save Changes Button (if edited)
+                    if hasChanges {
+                        PrimaryButton("Save Changes") {
+                            saveChanges()
                         }
                     }
-                    .padding(.horizontal)
-                    .animation(.easeInOut(duration: 0.3), value: isDirty)
-
-                    // Medicine Stock
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Stock")
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+                
+                // Stock Management Card
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Text("Stock Management")
                             .font(.headline)
                         
-                        HStack(spacing: 16) {
-                            IconButton(
-                                systemName: "minus.circle.fill",
-                                size: 44,
-                                backgroundColor: .red.opacity(0.8),
-                                foregroundColor: .white,
-                                accessibilityLabel: "Decrease stock"
-                            ) {
-                                viewModel.decreaseStock(
-                                    originalMedicine,
-                                    user: authViewModel.userEmail
-                                )
-                            }
-                            
-                            Text("\(originalMedicine.stock)")
-                                .font(.system(size: 32, weight: .bold, design: .rounded))
-                                .frame(minWidth: 80)
-                                .multilineTextAlignment(.center)
-                            
-                            IconButton(
-                                systemName: "plus.circle.fill",
-                                size: 44,
-                                backgroundColor: .green.opacity(0.8),
-                                foregroundColor: .white,
-                                accessibilityLabel: "Increase stock"
-                            ) {
-                                viewModel.increaseStock(
-                                    originalMedicine,
-                                    user: authViewModel.userEmail
-                                )
-                            }
-                        }
+                        Spacer()
+                        
+                        Text("Current: \(currentMedicine?.stock ?? 0)")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(stockColor)
                     }
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-
-                    // History Section
-                    VStack(alignment: .leading, spacing: 12) {
+                    
+                    // Add/Remove Toggle
+                    Picker("Mode", selection: $isAddMode) {
+                        Text("Add Stock").tag(true)
+                        Text("Remove Stock").tag(false)
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    
+                    // Quantity Selection
+                    VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("History")
-                                .font(.headline)
+                            Text("Quantity:")
+                                .font(.subheadline)
                             
                             Spacer()
                             
-                            // Page Size Selector
+                            Button(action: {
+                                withAnimation {
+                                    showStockPicker.toggle()
+                                }
+                            }) {
+                                HStack {
+                                    Text("\(stockAdjustment)")
+                                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                    Image(systemName: showStockPicker ? "chevron.up" : "chevron.down")
+                                        .font(.caption)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Color(.systemGray5))
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                        
+                        if showStockPicker {
+                            Picker("Quantity", selection: $stockAdjustment) {
+                                ForEach(1..<100) { num in
+                                    Text("\(num)").tag(num)
+                                }
+                            }
+                            .pickerStyle(WheelPickerStyle())
+                            .frame(height: 120)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(10)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                    }
+                    
+                    // Apply Button
+                    Button(action: applyStockChange) {
+                        HStack {
+                            Image(systemName: isAddMode ? "plus.circle" : "minus.circle")
+                            Text("\(isAddMode ? "Add" : "Remove") \(stockAdjustment)")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(isAddMode ? Color.green : Color.red)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                    }
+                    
+                    // Quick Actions
+                    Text("Quick Actions")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    HStack(spacing: 12) {
+                        ForEach([1, 5, 10], id: \.self) { amount in
                             HStack(spacing: 4) {
-                                Text("Show:")
+                                Button(action: { quickAdjust(-amount) }) {
+                                    Image(systemName: "minus")
+                                        .frame(width: 30, height: 30)
+                                        .background(Color.red.opacity(0.8))
+                                        .foregroundColor(.white)
+                                        .clipShape(Circle())
+                                }
+                                
+                                Text("\(amount)")
+                                    .font(.caption)
+                                    .frame(minWidth: 20)
+                                
+                                Button(action: { quickAdjust(amount) }) {
+                                    Image(systemName: "plus")
+                                        .frame(width: 30, height: 30)
+                                        .background(Color.green.opacity(0.8))
+                                        .foregroundColor(.white)
+                                        .clipShape(Circle())
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+                
+                // History Section
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Recent History")
+                        .font(.headline)
+                    
+                    if viewModel.currentHistory.isEmpty {
+                        Text("No history yet")
+                            .foregroundColor(.secondary)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color(.systemGray5))
+                            .cornerRadius(8)
+                    } else {
+                        ForEach(viewModel.currentHistory.prefix(10), id: \.id) { entry in
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(entry.action)
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                    
+                                    Spacer()
+                                    
+                                    Text(entry.timestamp, style: .relative)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Text(entry.user)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                 
-                                Picker("History Page Size", selection: $viewModel.historyPageSize) {
-                                    Text("5").tag(5)
-                                    Text("10").tag(10)
-                                    Text("20").tag(20)
-                                }
-                                .pickerStyle(SegmentedPickerStyle())
-                                .frame(maxWidth: 150)
-                                .onChange(of: viewModel.historyPageSize) { _, _ in
-                                    // Reset and refetch with new page size
-                                    viewModel.historyLimit = viewModel.historyPageSize
-                                    viewModel.fetchHistory(for: originalMedicine)
+                                if !entry.details.isEmpty {
+                                    Text(entry.details)
+                                        .font(.caption)
+                                        .foregroundColor(.primary)
                                 }
                             }
-                        }
-                        .padding(.top, 20)
-                        
-                        if viewModel.history.filter({ $0.medicineId == originalMedicine.id }).isEmpty {
-                            EmptyStateView(
-                                systemName: "clock",
-                                title: "No History Yet",
-                                message: "Changes to this medicine will appear here"
-                            )
-                            .frame(maxWidth: .infinity)
                             .padding()
-                        } else {
-                            // Show recent history entries (already sorted by Firebase)
-                            ForEach(viewModel.history.filter { $0.medicineId == originalMedicine.id }, id: \.id) { entry in
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Image(systemName: iconForAction(entry.action))
-                                            .foregroundColor(colorForAction(entry.action))
-                                            .font(.caption)
-                                        
-                                        Text(entry.action)
-                                            .font(.subheadline)
-                                            .fontWeight(.semibold)
-                                        
-                                        Spacer()
-                                        
-                                        Text(entry.timestamp.formatted(date: .abbreviated, time: .shortened))
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "person.circle.fill")
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
-                                        Text(entry.user)
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    
-                                    if !entry.details.isEmpty {
-                                        Text(entry.details)
-                                            .font(.caption)
-                                            .foregroundColor(.primary)
-                                            .padding(.top, 4)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                    }
-                                }
-                                .padding()
-                                .background(Color(.systemGray6))
-                                .cornerRadius(10)
-                                .transition(.opacity.combined(with: .move(edge: .bottom)))
-                            }
-                            
-                            // Load More button - show if we have exactly the limit (might be more to load)
-                            if viewModel.history.count == viewModel.historyLimit {
-                                SecondaryButton("Load More (\(viewModel.historyPageSize) more)") {
-                                    withAnimation(.easeInOut(duration: 0.3)) {
-                                        viewModel.loadMoreHistory(for: originalMedicine)
-                                    }
-                                }
-                                .padding(.top, 8)
-                            }
-                            
-                            // Info text
-                            HStack(spacing: 8) {
-                                Image(systemName: "info.circle")
-                                    .foregroundColor(.secondary)
-                                Text("Showing \(viewModel.history.count) most recent change\(viewModel.history.count == 1 ? "" : "s")")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.top, 8)
+                            .background(Color(.systemGray5))
+                            .cornerRadius(8)
                         }
                     }
-                    .padding(.horizontal)
-                    .padding(.bottom, 20)
                 }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
             }
-            
-            if showSuccessMessage {
-                VStack {
-                    HStack(spacing: 12) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.white)
-                        
-                        Text("Changes saved successfully")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.green)
-                            .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
-                    )
-                    .padding(.top, 60)
-                    
-                    Spacer()
-                }
-                .transition(.move(edge: .top).combined(with: .opacity))
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showSuccessMessage)
-            }
+            .padding()
         }
-        .navigationBarTitle("Medicine Details", displayMode: .inline)
+        .navigationTitle(currentMedicine?.name ?? "Medicine")
+        .navigationBarTitleDisplayMode(.inline)
+        .overlay(successOverlay)
         .onAppear {
-            viewModel.fetchHistory(for: originalMedicine)
+            if let id = medicine.id {
+                viewModel.loadHistory(for: id)
+            }
         }
         .onDisappear {
-            // CRITICAL FIX: Clean up history listener when leaving view
-            viewModel.clearHistory()
+            viewModel.stopHistoryListener()
         }
     }
     
-    private func iconForAction(_ action: String) -> String {
-        if action.contains("Increased") {
-            return "arrow.up.circle.fill"
-        } else if action.contains("Decreased") {
-            return "arrow.down.circle.fill"
-        } else if action.contains("Added") {
-            return "plus.circle.fill"
-        } else if action.contains("Deleted") {
-            return "trash.circle.fill"
-        } else if action.contains("Updated") {
-            return "pencil.circle.fill"
-        }
-        return "info.circle.fill"
+    // MARK: - Computed Properties
+    
+    private var hasChanges: Bool {
+        guard let current = currentMedicine else { return false }
+        return editedName != current.name ||
+               "Aisle \(editedAisleNumber)" != current.aisle
     }
     
-    private func colorForAction(_ action: String) -> Color {
-        if action.contains("Increased") {
-            return .green
-        } else if action.contains("Decreased") {
-            return .red
-        } else if action.contains("Added") {
-            return .blue
-        } else if action.contains("Deleted") {
-            return .orange
-        } else if action.contains("Updated") {
-            return .purple
+    private var stockColor: Color {
+        let stock = currentMedicine?.stock ?? 0
+        if stock == 0 { return .red }
+        if stock < 10 { return .orange }
+        return .green
+    }
+    
+    @ViewBuilder
+    private var successOverlay: some View {
+        if showSuccessMessage {
+            VStack {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.white)
+                    Text("Success!")
+                        .foregroundColor(.white)
+                        .fontWeight(.semibold)
+                }
+                .padding()
+                .background(Color.green)
+                .cornerRadius(12)
+                .padding(.top, 50)
+                
+                Spacer()
+            }
+            .transition(.move(edge: .top))
+            .animation(.spring(), value: showSuccessMessage)
         }
-        return .gray
     }
     
     // MARK: - Actions
     
-    private func saveChanges() {
-        var updatedMedicine = originalMedicine
-        updatedMedicine.name = editedMedicine.name.trimmingCharacters(in: .whitespaces)
-        updatedMedicine.aisle = "Aisle \(aisleNumber)"
+    private func applyStockChange() {
+        guard let id = medicine.id else { return }
         
-        viewModel.updateMedicine(updatedMedicine, user: authViewModel.userEmail)
+        let change = isAddMode ? stockAdjustment : -stockAdjustment
         
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-        
-        showSuccessMessage = true
-        
-        // For SwiftUI views (structs), use Task instead of weak self
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
-            showSuccessMessage = false
+        Task {
+            await viewModel.updateStock(
+                medicineId: id,
+                change: change,
+                user: authViewModel.userEmail
+            )
+            
+            showSuccess()
+            stockAdjustment = 1
+            showStockPicker = false
         }
     }
     
-    private func cancelChanges() {
-        editedMedicine = originalMedicine
+    private func quickAdjust(_ amount: Int) {
+        guard let id = medicine.id else { return }
         
-        let components = originalMedicine.aisle.components(separatedBy: " ")
-        aisleNumber = Int(components.last ?? "1") ?? 1
+        Task {
+            await viewModel.updateStock(
+                medicineId: id,
+                change: amount,
+                user: authViewModel.userEmail
+            )
+            
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+    }
+    
+    private func saveChanges() {
+        guard var updated = currentMedicine else { return }
         
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        updated.name = editedName
+        updated.aisle = "Aisle \(editedAisleNumber)"
+        
+        Task {
+            await viewModel.updateMedicine(updated, user: authViewModel.userEmail)
+            showSuccess()
+        }
+    }
+    
+    private func showSuccess() {
+        showSuccessMessage = true
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            showSuccessMessage = false
+        }
     }
 }
 
 struct MedicineDetailView_Previews: PreviewProvider {
     static var previews: some View {
-        let sampleMedicine = Medicine(name: "Aspirin", stock: 25, aisle: "Aisle 1")
         NavigationView {
-            MedicineDetailView(medicine: sampleMedicine)
+            MedicineDetailView(medicine: Medicine(id: "1", name: "Aspirin", stock: 25, aisle: "Aisle 1"))
                 .environmentObject(AuthViewModel())
                 .environmentObject(MedicineStockViewModel())
         }

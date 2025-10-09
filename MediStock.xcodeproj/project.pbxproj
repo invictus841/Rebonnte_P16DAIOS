@@ -29,6 +29,7 @@
 		AC0094B72E913667003F4215 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = AC0094B62E913667003F4215 /* FirebaseAuth */; };
 		AC0094B92E913667003F4215 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = AC0094B82E913667003F4215 /* FirebaseCore */; };
 		AC0094BD2E913667003F4215 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = AC0094BC2E913667003F4215 /* FirebaseFirestore */; };
+		AC0094C52E93C94F003F4215 /* LaunchScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0094C42E93C94F003F4215 /* LaunchScreenView.swift */; };
 		AC1390352E8420DA00F4E421 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = AC1390342E8420DA00F4E421 /* GoogleService-Info.plist */; };
 		AC13903B2E858A9600F4E421 /* UIComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC13903A2E858A9600F4E421 /* UIComponents.swift */; };
 		AC1390412E85971100F4E421 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC1390402E85971100F4E421 /* AuthService.swift */; };
@@ -76,6 +77,7 @@
 		53E0D8ED2C06718100DE1134 /* AllMedicinesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllMedicinesView.swift; sourceTree = "<group>"; };
 		AC0094992E8EEB93003F4215 /* AddMedicineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMedicineView.swift; sourceTree = "<group>"; };
 		AC0094B32E912CAC003F4215 /* MedicineService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicineService.swift; sourceTree = "<group>"; };
+		AC0094C42E93C94F003F4215 /* LaunchScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchScreenView.swift; sourceTree = "<group>"; };
 		AC1390342E8420DA00F4E421 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		AC13903A2E858A9600F4E421 /* UIComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIComponents.swift; sourceTree = "<group>"; };
 		AC1390402E85971100F4E421 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
@@ -204,6 +206,7 @@
 		AC13903F2E858FCA00F4E421 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				AC0094C42E93C94F003F4215 /* LaunchScreenView.swift */,
 				AC1390442E8597EB00F4E421 /* ProfileView.swift */,
 				53E0D8D72C06097900DE1134 /* LoginView.swift */,
 				53E0D8E52C066F4100DE1134 /* AisleListView.swift */,
@@ -365,6 +368,7 @@
 				53E0D8DC2C06099C00DE1134 /* Medicine.swift in Sources */,
 				53E0D8DA2C06098F00DE1134 /* MedicineListView.swift in Sources */,
 				AC00949A2E8EEB93003F4215 /* AddMedicineView.swift in Sources */,
+				AC0094C52E93C94F003F4215 /* LaunchScreenView.swift in Sources */,
 				AC1390452E8597EB00F4E421 /* ProfileView.swift in Sources */,
 				53E0D8E62C066F4100DE1134 /* AisleListView.swift in Sources */,
 				53E0D8972C06084700DE1134 /* MediStockApp.swift in Sources */,

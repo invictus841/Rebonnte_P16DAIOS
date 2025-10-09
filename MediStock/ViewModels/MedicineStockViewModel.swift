@@ -1,314 +1,239 @@
 import Foundation
+// NO FIREBASE IMPORTS! 🚫
 
+@MainActor
 class MedicineStockViewModel: ObservableObject {
     
-    // MARK: - Published Properties
+    // MARK: - App State
     
-    @Published var medicines: [Medicine] = []
-    @Published var aisles: [String] = []
-    @Published var aisleMedicines: [Medicine] = []  // Medicines for a specific aisle
-    @Published var history: [HistoryEntry] = []
-    @Published var isLoading = false
+    enum LoadingState: Equatable {
+        case initializing
+        case loading
+        case ready
+        case error(String)
+    }
+    
+    @Published var appState: LoadingState = .initializing
+    @Published var loadingProgress: Double = 0
+    
+    // MARK: - Data
+    
+    @Published var allMedicines: [Medicine] = []
+    @Published var currentHistory: [HistoryEntry] = []
     @Published var errorMessage: String?
-    @Published var historyLimit = 5   // Default: 5 history entries
-    @Published var medicinesLimit = 10  // Default: 10 medicines
-    @Published var historyPageSize = 5  // User can change this (5/10/20)
-    @Published var medicinesPageSize = 10  // User can change this (5/10/20)
     
-    // MARK: - Private Properties
+    // UI Display Settings
+    @Published var displayLimit = 10
+    
+    // MARK: - Dependencies (Using Protocol, not concrete Firebase!)
     
     private let medicineService: MedicineServiceProtocol
+    private var hasInitialized = false
     
-    // Track which medicine's history is currently being observed
-    private var currentHistoryMedicineId: String?
+    // MARK: - Computed Properties
     
-    // MARK: - Initialization
+    var aisles: [String] {
+        let uniqueAisles = Set(allMedicines.map { $0.aisle })
+        return Array(uniqueAisles).sorted()
+    }
+    
+    var displayedMedicines: [Medicine] {
+        Array(allMedicines.prefix(displayLimit))
+    }
+    
+    var hasMoreToShow: Bool {
+        displayLimit < allMedicines.count
+    }
+    
+    func medicinesForAisle(_ aisle: String) -> [Medicine] {
+        allMedicines.filter { $0.aisle == aisle }
+    }
+    
+    func medicine(withId id: String) -> Medicine? {
+        allMedicines.first { $0.id == id }
+    }
+    
+    // MARK: - Initialization (Dependency Injection!)
     
     init(medicineService: MedicineServiceProtocol = FirebaseMedicineService()) {
         self.medicineService = medicineService
     }
     
-    // MARK: - Fetch Methods
+    // MARK: - App Initialization
     
-    func fetchMedicines() {
-        medicineService.startMedicinesListener(limit: medicinesLimit) { [weak self] medicines in
+    func initializeApp() async {
+        guard !hasInitialized else { return }
+        hasInitialized = true
+        
+        appState = .loading
+        loadingProgress = 0.1
+        
+        await loadAllMedicines()
+    }
+    
+    private func loadAllMedicines() async {
+        loadingProgress = 0.3
+        
+        do {
+            // Load initial data
+            let medicines = try await medicineService.loadAllMedicines()
+            
+            loadingProgress = 0.6
+            
+            allMedicines = medicines
+            loadingProgress = 0.9
+            
+            print("✅ Loaded \(medicines.count) medicines")
+            
+            // Start real-time listener for updates
+            startRealTimeUpdates()
+            
+            // Small delay for smooth transition
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            
+            loadingProgress = 1.0
+            appState = .ready
+            
+        } catch {
+            print("❌ Error loading medicines: \(error)")
+            appState = .error(error.localizedDescription)
+        }
+    }
+    
+    private func startRealTimeUpdates() {
+        medicineService.startMedicinesListener { [weak self] medicines in
             guard let self = self else { return }
-            Task { @MainActor [weak self] in
-                self?.medicines = medicines
-                print("✅ Medicines loaded: \(medicines.count) (limit: \(self?.medicinesLimit ?? 10))")
+            
+            Task { @MainActor in
+                // Only update if we're ready (not during initial load)
+                guard case .ready = self.appState else { return }
+                self.allMedicines = medicines
             }
         }
     }
     
-    func loadMoreMedicines() {
-        // Increase limit by page size
-        medicinesLimit += medicinesPageSize
-        
-        // Restart listener with new limit
-        medicineService.startMedicinesListener(limit: medicinesLimit) { [weak self] medicines in
-            guard let self = self else { return }
-            Task { @MainActor [weak self] in
-                self?.medicines = medicines
-                print("✅ Loaded more medicines: \(medicines.count) entries")
+    // MARK: - History Management
+    
+    func loadHistory(for medicineId: String) {
+        medicineService.startHistoryListener(for: medicineId) { [weak self] entries in
+            Task { @MainActor in
+                self?.currentHistory = entries
             }
         }
     }
     
-    func fetchAisles() {
-        // Load ALL medicines (no limit) to get complete aisles list
-        medicineService.startAllMedicinesListener { [weak self] medicines in
-            guard let self = self else { return }
-            Task { @MainActor [weak self] in
-                self?.medicines = medicines
-                self?.aisles = Array(Set(medicines.map { $0.aisle })).sorted()
-                print("✅ Aisles extracted from \(medicines.count) medicines: \(self?.aisles.count ?? 0) aisles found")
-            }
-        }
-    }
-    
-    // NEW: Fetch medicines for a specific aisle (Firebase-side filtering)
-    func fetchMedicinesForAisle(_ aisle: String) {
-        medicineService.startAisleMedicinesListener(aisle: aisle) { [weak self] medicines in
-            guard let self = self else { return }
-            Task { @MainActor [weak self] in
-                self?.aisleMedicines = medicines
-                print("✅ Aisle medicines loaded: \(medicines.count) for '\(aisle)'")
-            }
-        }
-    }
-    
-    func fetchHistory(for medicine: Medicine) {
-        guard let medicineId = medicine.id else { return }
-        
-        // Don't create a new listener if we're already listening to this medicine
-        if currentHistoryMedicineId == medicineId {
-            return
-        }
-        
-        // Reset limit to initial page size when viewing new medicine
-        historyLimit = historyPageSize
-        
-        // Clear old history before fetching new one
-        Task { @MainActor in
-            self.history = []
-        }
-        
-        currentHistoryMedicineId = medicineId
-        
-        medicineService.startHistoryListener(for: medicineId, limit: historyLimit) { [weak self] history in
-            guard let self = self else { return }
-            Task { @MainActor [weak self] in
-                // Only update if we're still interested in this medicine
-                guard self?.currentHistoryMedicineId == medicineId else { return }
-                
-                // History is already sorted by Firebase query (newest first)
-                self?.history = history
-                
-                print("✅ History loaded: \(history.count) entries (limit: \(self?.historyLimit ?? 5))")
-            }
-        }
-    }
-    
-    // Load more history entries
-    func loadMoreHistory(for medicine: Medicine) {
-        guard let medicineId = medicine.id,
-              medicineId == currentHistoryMedicineId else { return }
-        
-        // Increase limit by page size
-        historyLimit += historyPageSize
-        
-        // Restart listener with new limit
-        medicineService.startHistoryListener(for: medicineId, limit: historyLimit) { [weak self] history in
-            guard let self = self else { return }
-            Task { @MainActor [weak self] in
-                guard self?.currentHistoryMedicineId == medicineId else { return }
-                self?.history = history
-                print("✅ Loaded more history: \(history.count) entries")
-            }
-        }
-    }
-    
-    // Clear history when leaving detail view
-    func clearHistory() {
-        Task { @MainActor in
-            self.history = []
-            self.historyLimit = historyPageSize  // Reset to page size
-        }
-        currentHistoryMedicineId = nil
+    func stopHistoryListener() {
         medicineService.stopHistoryListener()
+        currentHistory = []
+    }
+    
+    // MARK: - Display Controls
+    
+    func showMore() {
+        displayLimit = min(displayLimit + 10, allMedicines.count)
+    }
+    
+    func setDisplayLimit(_ limit: Int) {
+        displayLimit = limit
     }
     
     // MARK: - CRUD Operations
     
-    func addMedicine(_ medicine: Medicine, user: String) async throws {
-        await MainActor.run { [weak self] in
-            self?.isLoading = true
-            self?.errorMessage = nil
-        }
+    func addMedicine(name: String, stock: Int, aisle: String, user: String) async {
+        let medicine = Medicine(name: name, stock: stock, aisle: aisle)
         
         do {
-            let medicineId = try await medicineService.addMedicine(medicine)
+            try await medicineService.addMedicine(medicine)
+            
+            let entry = HistoryEntry(
+                medicineId: medicine.id ?? "",
+                user: user,
+                action: "Added \(name)",
+                details: "Initial stock: \(stock) in \(aisle)"
+            )
+            try await medicineService.addHistoryEntry(entry)
+            
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+    
+    func updateStock(medicineId: String, change: Int, user: String) async {
+        guard let medicine = medicine(withId: medicineId) else { return }
+        
+        let newStock = max(0, medicine.stock + change)
+        
+        do {
+            try await medicineService.updateStock(
+                medicineId: medicineId,
+                newStock: newStock
+            )
+            
+            let action = change > 0 ?
+                "Added \(change) to \(medicine.name)" :
+                "Removed \(abs(change)) from \(medicine.name)"
             
             let entry = HistoryEntry(
                 medicineId: medicineId,
                 user: user,
-                action: "Added \(medicine.name)",
-                details: "Added new medicine with initial stock of \(medicine.stock) in \(medicine.aisle)"
+                action: action,
+                details: "Stock: \(medicine.stock) → \(newStock)"
             )
-            
             try await medicineService.addHistoryEntry(entry)
             
-            await MainActor.run { [weak self] in
-                self?.isLoading = false
-            }
         } catch {
-            await MainActor.run { [weak self] in
-                self?.isLoading = false
-                self?.errorMessage = error.localizedDescription
-            }
-            throw error
+            errorMessage = error.localizedDescription
         }
     }
     
-    func deleteMedicine(id: String, medicineName: String, user: String) {
-        Task { @MainActor [weak self] in
-            self?.isLoading = true
-            self?.errorMessage = nil
+    func updateMedicine(_ medicine: Medicine, user: String) async {
+        guard medicine.id != nil else { return }
+        
+        do {
+            try await medicineService.updateMedicine(medicine)
             
-            do {
-                try await self?.medicineService.deleteMedicine(id: id)
-                
-                let entry = HistoryEntry(
-                    medicineId: id,
-                    user: user,
-                    action: "Deleted \(medicineName)",
-                    details: "Medicine removed from inventory"
-                )
-                
-                try await self?.medicineService.addHistoryEntry(entry)
-                
-                if let index = self?.medicines.firstIndex(where: { $0.id == id }) {
-                    self?.medicines.remove(at: index)
-                }
-                self?.isLoading = false
-            } catch {
-                self?.isLoading = false
-                self?.errorMessage = error.localizedDescription
-                print("Error deleting medicine: \(error)")
-            }
-        }
-    }
-    
-    func updateMedicine(_ medicine: Medicine, user: String) {
-        guard let id = medicine.id else { return }
-        guard let originalMedicine = medicines.first(where: { $0.id == id }) else {
-            Task {
-                try? await medicineService.updateMedicine(medicine)
-            }
-            return
-        }
-        
-        var changes: [String] = []
-        
-        if originalMedicine.name != medicine.name {
-            changes.append("Name: '\(originalMedicine.name)' → '\(medicine.name)'")
-        }
-        
-        if originalMedicine.aisle != medicine.aisle {
-            changes.append("Aisle: '\(originalMedicine.aisle)' → '\(medicine.aisle)'")
-        }
-        
-        guard !changes.isEmpty else { return }
-        
-        Task { @MainActor [weak self] in
-            self?.isLoading = true
-            self?.errorMessage = nil
+            let entry = HistoryEntry(
+                medicineId: medicine.id!,
+                user: user,
+                action: "Updated \(medicine.name)",
+                details: "Modified medicine details"
+            )
+            try await medicineService.addHistoryEntry(entry)
             
-            do {
-                try await self?.medicineService.updateMedicine(medicine)
-                
-                let action = changes.count == 1 ? "Updated \(medicine.name)" : "Updated \(medicine.name) (multiple fields)"
-                let details = changes.joined(separator: "\n")
-                
-                let entry = HistoryEntry(
-                    medicineId: id,
-                    user: user,
-                    action: action,
-                    details: details
-                )
-                
-                try await self?.medicineService.addHistoryEntry(entry)
-                
-                self?.isLoading = false
-            } catch {
-                self?.isLoading = false
-                self?.errorMessage = error.localizedDescription
-                print("Error updating medicine: \(error)")
-            }
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
     
-    // MARK: - Stock Management
-    
-    func increaseStock(_ medicine: Medicine, user: String) {
-        updateStock(medicine, by: 1, user: user)
-    }
-    
-    func decreaseStock(_ medicine: Medicine, user: String) {
-        updateStock(medicine, by: -1, user: user)
-    }
-    
-    private func updateStock(_ medicine: Medicine, by amount: Int, user: String) {
-        guard let id = medicine.id else { return }
-        
-        let oldStock = medicine.stock
-        let newStock = oldStock + amount
-        
-        Task { @MainActor [weak self] in
-            self?.isLoading = true
-            self?.errorMessage = nil
+    func deleteMedicine(id: String, name: String, user: String) async {
+        do {
+            try await medicineService.deleteMedicine(id: id)
             
-            do {
-                try await self?.medicineService.updateStock(medicineId: id, newStock: newStock)
-                
-                if let index = self?.medicines.firstIndex(where: { $0.id == id }) {
-                    self?.medicines[index].stock = newStock
-                }
-                
-                let entry = HistoryEntry(
-                    medicineId: id,
-                    user: user,
-                    action: "\(amount > 0 ? "Increased" : "Decreased") stock of \(medicine.name) by \(abs(amount))",
-                    details: "Stock changed from \(oldStock) to \(newStock)"
-                )
-                
-                try await self?.medicineService.addHistoryEntry(entry)
-                
-                self?.isLoading = false
-            } catch {
-                self?.isLoading = false
-                self?.errorMessage = error.localizedDescription
-                print("Error updating stock: \(error)")
-            }
+            let entry = HistoryEntry(
+                medicineId: id,
+                user: user,
+                action: "Deleted \(name)",
+                details: "Removed from inventory"
+            )
+            try await medicineService.addHistoryEntry(entry)
+            
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
     
     // MARK: - Cleanup
     
-    func stopListening() {
+    func cleanup() {
         medicineService.stopAllListeners()
-        Task { @MainActor in
-            self.medicines = []
-            self.aisles = []
-            self.history = []
-            self.medicinesLimit = medicinesPageSize  // Reset to page size
-            self.historyLimit = historyPageSize      // Reset to page size
-        }
-        currentHistoryMedicineId = nil
+        allMedicines = []
+        currentHistory = []
+        appState = .initializing
+        hasInitialized = false
     }
     
     deinit {
-        print("MedicineStockViewModel deinitialized")
+        // Clean up listeners without calling @MainActor methods
         medicineService.stopAllListeners()
     }
 }

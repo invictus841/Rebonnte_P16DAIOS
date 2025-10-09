@@ -3,166 +3,202 @@ import SwiftUI
 struct AllMedicinesView: View {
     @EnvironmentObject var viewModel: MedicineStockViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
-    @State private var filterText: String = ""
-    @State private var sortOption: SortOption = .none
+    @State private var searchText = ""
+    @State private var sortBy: SortOption = .name
+    
+    enum SortOption {
+        case name, stock, aisle
+    }
+    
+    // Filter and sort medicines
+    var filteredMedicines: [Medicine] {
+        var medicines = viewModel.displayedMedicines
+        
+        // Search filter
+        if !searchText.isEmpty {
+            medicines = medicines.filter {
+                $0.name.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+        
+        // Sort
+        switch sortBy {
+        case .name:
+            medicines.sort { $0.name < $1.name }
+        case .stock:
+            medicines.sort { $0.stock < $1.stock }
+        case .aisle:
+            medicines.sort { $0.aisle < $1.aisle }
+        }
+        
+        return medicines
+    }
 
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Filter and Sort Controls
+                // Search Bar
                 HStack {
-                    TextField("Filter by name", text: $filterText)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding(.leading, 10)
-                    
-                    Spacer()
-
-                    Picker("Sort by", selection: $sortOption) {
-                        Text("None").tag(SortOption.none)
-                        Text("Name").tag(SortOption.name)
-                        Text("Stock").tag(SortOption.stock)
-                    }
-                    .pickerStyle(MenuPickerStyle())
-                    .padding(.trailing, 10)
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                    TextField("Search medicines...", text: $searchText)
                 }
-                .padding(.top, 10)
-                .padding(.bottom, 8)
+                .padding(10)
+                .background(Color(.systemGray6))
+                .cornerRadius(10)
+                .padding()
                 
-                // Page Size Selector
+                // Display Controls
                 HStack {
-                    Text("Show per page:")
+                    Text("Show:")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    Picker("Page Size", selection: $viewModel.medicinesPageSize) {
-                        Text("5").tag(5)
+                    Picker("Display", selection: $viewModel.displayLimit) {
                         Text("10").tag(10)
-                        Text("20").tag(20)
+                        Text("25").tag(25)
+                        Text("50").tag(50)
+                        Text("100").tag(100)
+                        if viewModel.allMedicines.count > 100 {
+                            Text("All").tag(viewModel.allMedicines.count)
+                        }
                     }
                     .pickerStyle(SegmentedPickerStyle())
-                    .frame(maxWidth: 200)
-                    .onChange(of: viewModel.medicinesPageSize) { _, _ in
-                        // Reset and refetch with new page size
-                        viewModel.medicinesLimit = viewModel.medicinesPageSize
-                        viewModel.fetchMedicines()
-                    }
+                    .frame(maxWidth: 250)
                     
                     Spacer()
+                    
+                    Menu {
+                        Button("Sort by Name") { sortBy = .name }
+                        Button("Sort by Stock") { sortBy = .stock }
+                        Button("Sort by Aisle") { sortBy = .aisle }
+                    } label: {
+                        Label("Sort", systemImage: "arrow.up.arrow.down")
+                            .font(.caption)
+                    }
                 }
-                .padding(.horizontal, 10)
+                .padding(.horizontal)
                 .padding(.bottom, 8)
                 
-                // Medicine List
+                // Medicines List
                 List {
-                    ForEach(filteredAndSortedMedicines, id: \.id) { medicine in
-                        NavigationLink(destination: MedicineDetailView(medicine: medicine)) {
-                            VStack(alignment: .leading) {
-                                Text(medicine.name)
-                                    .font(.headline)
-                                Text("Stock: \(medicine.stock)")
-                                    .font(.subheadline)
+                    if viewModel.allMedicines.isEmpty {
+                        EmptyStateView(
+                            systemName: "pills",
+                            title: "No Medicines",
+                            message: "Start by adding your first medicine",
+                            actionTitle: "Add Medicine",
+                            action: {
+                                // Will navigate via NavigationLink
                             }
-                        }
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
-                    }
-                    .onDelete(perform: deleteMedicines)
-                    
-                    // Load More Button
-                    if shouldShowLoadMore {
-                        VStack(spacing: 12) {
-                            SecondaryButton("Load More (\(viewModel.medicinesPageSize) more)") {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    viewModel.loadMoreMedicines()
-                                }
-                            }
-                        }
+                        )
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
+                    } else {
+                        ForEach(filteredMedicines, id: \.id) { medicine in
+                            NavigationLink(destination: MedicineDetailView(medicine: medicine)) {
+                                HStack {
+                                    VStack(alignment: .leading) {
+                                        Text(medicine.name)
+                                            .font(.headline)
+                                        Text(medicine.aisle)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    // Stock badge
+                                    HStack(spacing: 4) {
+                                        if medicine.stock == 0 {
+                                            Image(systemName: "exclamationmark.circle.fill")
+                                                .font(.caption)
+                                                .foregroundColor(.red)
+                                        } else if medicine.stock < 10 {
+                                            Image(systemName: "exclamationmark.triangle.fill")
+                                                .font(.caption)
+                                                .foregroundColor(.orange)
+                                        }
+                                        
+                                        Text("\(medicine.stock)")
+                                            .font(.system(.body, design: .rounded))
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(stockColor(medicine.stock))
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(stockColor(medicine.stock).opacity(0.15))
+                                    )
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                        .onDelete { indexSet in
+                            deleteMedicines(at: indexSet, from: filteredMedicines)
+                        }
+                        
+                        // Show More Button
+                        if viewModel.hasMoreToShow && searchText.isEmpty {
+                            Button(action: { viewModel.showMore() }) {
+                                HStack {
+                                    Spacer()
+                                    Image(systemName: "plus.circle")
+                                    Text("Show More")
+                                    Spacer()
+                                }
+                                .foregroundColor(.primaryAccent)
+                                .padding()
+                            }
+                            .listRowBackground(Color.clear)
+                        }
                     }
-                    
-                    // Info Footer
-                    HStack(spacing: 8) {
-                        Image(systemName: "info.circle")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
-                        Text("Showing \(viewModel.medicines.count) medicine\(viewModel.medicines.count == 1 ? "" : "s")")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
                 }
-                .navigationBarTitle("All Medicines")
-                .navigationBarItems(trailing: NavigationLink(destination: AddMedicineView()) {
-                    Image(systemName: "plus")
-                        .font(.title3)
-                        .foregroundColor(.primaryAccent)
-                })
+                .listStyle(PlainListStyle())
+                
+                // Status Bar
+                if !viewModel.allMedicines.isEmpty {
+                    HStack {
+                        Text("Showing \(filteredMedicines.count) of \(viewModel.allMedicines.count) medicines")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray6))
+                }
             }
-        }
-        .onAppear {
-            // Only fetch if medicines array is empty to avoid redundant calls
-            if viewModel.medicines.isEmpty {
-                viewModel.fetchMedicines()
-            }
+            .navigationTitle("All Medicines")
+            .navigationBarItems(trailing: NavigationLink(destination: AddMedicineView()) {
+                Image(systemName: "plus")
+                    .font(.title3)
+                    .foregroundColor(.primaryAccent)
+            })
         }
     }
     
-    // MARK: - Computed Properties
-    
-    var filteredAndSortedMedicines: [Medicine] {
-        var medicines = viewModel.medicines
-
-        // Filtering
-        if !filterText.isEmpty {
-            medicines = medicines.filter { $0.name.lowercased().contains(filterText.lowercased()) }
-        }
-
-        // Sorting
-        switch sortOption {
-        case .name:
-            medicines.sort { $0.name.lowercased() < $1.name.lowercased() }
-        case .stock:
-            medicines.sort { $0.stock < $1.stock }
-        case .none:
-            break
-        }
-
-        return medicines
+    private func stockColor(_ stock: Int) -> Color {
+        if stock == 0 { return .red }
+        if stock < 10 { return .orange }
+        return .green
     }
     
-    var shouldShowLoadMore: Bool {
-        // Show button if we have exactly the limit (might be more to load)
-        // AND we're not filtering (load more doesn't work with filters)
-        filterText.isEmpty && viewModel.medicines.count == viewModel.medicinesLimit
-    }
-    
-    // MARK: - Delete Action
-    
-    private func deleteMedicines(at offsets: IndexSet) {
-        let medicinesToDelete = offsets.map { filteredAndSortedMedicines[$0] }
-        
-        for medicine in medicinesToDelete {
+    private func deleteMedicines(at offsets: IndexSet, from medicines: [Medicine]) {
+        for index in offsets {
+            let medicine = medicines[index]
             guard let id = medicine.id else { continue }
             
-            viewModel.deleteMedicine(
-                id: id,
-                medicineName: medicine.name,
-                user: authViewModel.userEmail
-            )
+            Task {
+                await viewModel.deleteMedicine(
+                    id: id,
+                    name: medicine.name,
+                    user: authViewModel.userEmail
+                )
+            }
         }
     }
-}
-
-enum SortOption: String, CaseIterable, Identifiable {
-    case none
-    case name
-    case stock
-
-    var id: String { self.rawValue }
 }
 
 struct AllMedicinesView_Previews: PreviewProvider {

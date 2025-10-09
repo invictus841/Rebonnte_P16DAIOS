@@ -189,36 +189,30 @@ struct AddMedicineView: View {
         
         // Trim values
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let aisle = "Aisle \(aisleNumber)"
         
-        // Create medicine object
-        let newMedicine = Medicine(
-            id: nil,
-            name: trimmedName,
-            stock: stock,
-            aisle: "Aisle \(aisleNumber)"
-        )
-        
-        // Save to Firebase
+        // Save to Firebase using clean ViewModel method
         Task {
-            do {
-                try await viewModel.addMedicine(
-                    newMedicine,
-                    user: authViewModel.userEmail
-                )
-                
-                // Success - dismiss view
-                await MainActor.run {
-                    // Add haptic feedback
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                    dismiss()
-                }
-            } catch {
-                // Error handling
+            await viewModel.addMedicine(
+                name: trimmedName,
+                stock: stock,
+                aisle: aisle,
+                user: authViewModel.userEmail
+            )
+            
+            // Check if there was an error
+            if let error = viewModel.errorMessage {
                 await MainActor.run {
                     isSaving = false
-                    validationMessage = "Failed to save: \(error.localizedDescription)"
+                    validationMessage = error
                     showingValidationError = true
                     UINotificationFeedbackGenerator().notificationOccurred(.error)
+                }
+            } else {
+                // Success - dismiss view
+                await MainActor.run {
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    dismiss()
                 }
             }
         }
@@ -228,7 +222,7 @@ struct AddMedicineView: View {
 // MARK: - Preview
 
 #Preview {
-        AddMedicineView()
-            .environmentObject(AuthViewModel())
-            .environmentObject(MedicineStockViewModel())
+    AddMedicineView()
+        .environmentObject(AuthViewModel())
+        .environmentObject(MedicineStockViewModel())
 }
