@@ -12,26 +12,44 @@ struct AllMedicinesView: View {
     
     // Filter and sort medicines
     var filteredMedicines: [Medicine] {
-        var medicines = viewModel.displayedMedicines
-        
-        // Search filter
-        if !searchText.isEmpty {
-            medicines = medicines.filter {
-                $0.name.localizedCaseInsensitiveContains(searchText)
+            // Start with ALL medicines for sorting and searching
+            var medicines = viewModel.allMedicines
+            
+            // Search filter
+            if !searchText.isEmpty {
+                medicines = medicines.filter {
+                    $0.name.localizedCaseInsensitiveContains(searchText)
+                }
             }
-        }
+            
+            // Sort
+            switch sortBy {
+            case .name:
+                medicines.sort { $0.name < $1.name }
+            case .stock:
+                medicines.sort { $0.stock < $1.stock }
+            case .aisle:
+                // Extract numbers from "Aisle X" and sort numerically
+                medicines.sort { med1, med2 in
+                    let num1 = extractAisleNumber(from: med1.aisle)
+                    let num2 = extractAisleNumber(from: med2.aisle)
+                    return num1 < num2
+                }
+            }
         
-        // Sort
-        switch sortBy {
-        case .name:
-            medicines.sort { $0.name < $1.name }
-        case .stock:
-            medicines.sort { $0.stock < $1.stock }
-        case .aisle:
-            medicines.sort { $0.aisle < $1.aisle }
+        // Apply display limit AFTER sorting (only when not searching)
+        if searchText.isEmpty && viewModel.displayLimit < medicines.count {
+            medicines = Array(medicines.prefix(viewModel.displayLimit))
         }
         
         return medicines
+    }
+    
+    // Helper function to extract aisle number
+    private func extractAisleNumber(from aisle: String) -> Int {
+        // Extract number from "Aisle X" format
+        let numberString = aisle.replacingOccurrences(of: "Aisle ", with: "")
+        return Int(numberString) ?? 0
     }
 
     var body: some View {

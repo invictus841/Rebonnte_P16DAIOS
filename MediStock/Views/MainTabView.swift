@@ -19,7 +19,7 @@ struct MainTabView: View {
                     Label("All Medicines", systemImage: "pills.fill")
                 }
                 .tag(1)
-                .badge(lowStockCount)
+                .badge(stockStatusBadge)
             
             ProfileView()
                 .tabItem {
@@ -32,6 +32,28 @@ struct MainTabView: View {
     
     private var lowStockCount: Int {
         medicineViewModel.allMedicines.filter { $0.stock > 0 && $0.stock < 10 }.count
+    }
+    
+    private var outOfStockCount: Int {
+        medicineViewModel.allMedicines.filter { $0.stock == 0 }.count
+    }
+    
+    private var stockStatusBadge: String? {
+        let out = outOfStockCount
+        let low = lowStockCount
+        
+        if out == 0 && low == 0 {
+            return nil  // No badge if everything is fine
+        }
+        
+        // Format with emojis: 🔴 for emergency (out of stock), ) 🟡 for warning (low stock)
+        if out > 0 && low > 0 {
+            return "\(out)🔴 \(low)🟡"
+        } else if out > 0 {
+            return "\(out)🟡"
+        } else {
+            return "\(low)🟡"
+        }
     }
 }
 
