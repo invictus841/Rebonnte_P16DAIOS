@@ -10,6 +10,8 @@ struct MedicineDetailView: View {
     @State private var showSuccessMessage = false
     @State private var showStockPicker = false
     
+    @State private var hasLoadedHistory = false
+    
     @EnvironmentObject var viewModel: MedicineStockViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
     @Environment(\.dismiss) private var dismiss
@@ -224,12 +226,16 @@ struct MedicineDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .overlay(successOverlay)
         .onAppear {
-            if let id = medicine.id {
+            // Only load history once
+            if !hasLoadedHistory, let id = medicine.id {
                 viewModel.loadHistory(for: id)
+                hasLoadedHistory = true
             }
         }
         .onDisappear {
+            // Always stop the listener
             viewModel.stopHistoryListener()
+            hasLoadedHistory = false
         }
     }
     
@@ -321,8 +327,8 @@ struct MedicineDetailView: View {
         showSuccessMessage = true
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         
-        Task {
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+        // Use a timer instead of Task.sleep - it's simpler and doesn't leak
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             showSuccessMessage = false
         }
     }

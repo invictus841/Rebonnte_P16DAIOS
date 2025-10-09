@@ -19,7 +19,7 @@ struct ContentView: View {
                 // Logged in - check app state
                 ZStack {
                     // Main app (hidden during loading)
-                    if showMainApp {
+                    if showMainApp || isAppReady {  // Show if ready OR showMainApp is true
                         MainTabView()
                             .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     }
@@ -56,18 +56,12 @@ struct ContentView: View {
                     await medicineViewModel.initializeApp()
                 }
             } else if !isAuthenticated && oldValue {
-                // User logged out - clean up
+                // User logged out - AGGRESSIVE CLEANUP
+                medicineViewModel.stopMedicinesListener()
+                medicineViewModel.stopHistoryListener()
                 medicineViewModel.cleanup()
                 showMainApp = false
             }
         }
-    }
-}
-
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-            .environmentObject(AuthViewModel())
-            .environmentObject(MedicineStockViewModel())
     }
 }

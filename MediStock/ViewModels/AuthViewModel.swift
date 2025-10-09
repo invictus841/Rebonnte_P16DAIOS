@@ -89,13 +89,15 @@ class AuthViewModel: ObservableObject {
     // MARK: - Private Methods
     
     private func startListening() {
-        authService.startAuthListener { [weak self] user in
-            Task { @MainActor [weak self] in
-                self?.currentUser = user
-                self?.isAuthenticated = user != nil
+            authService.startAuthListener { [weak self] user in
+                // Simple dispatch to main queue to update UI
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.currentUser = user
+                    self.isAuthenticated = user != nil
+                }
             }
         }
-    }
     
     // MARK: - Convenience Properties
     

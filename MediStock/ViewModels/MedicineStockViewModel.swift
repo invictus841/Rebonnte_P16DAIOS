@@ -104,7 +104,8 @@ class MedicineStockViewModel: ObservableObject {
         medicineService.startMedicinesListener { [weak self] medicines in
             guard let self = self else { return }
             
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
                 // Only update if we're ready (not during initial load)
                 guard case .ready = self.appState else { return }
                 self.allMedicines = medicines
@@ -222,14 +223,31 @@ class MedicineStockViewModel: ObservableObject {
         }
     }
     
+    func stopMedicinesListener() {
+        medicineService.stopMedicinesListener()
+    }
+    
     // MARK: - Cleanup
     
     func cleanup() {
+        print("🧹 Starting cleanup")
+        
+        // Stop ALL listeners
+        medicineService.stopMedicinesListener()
+        medicineService.stopHistoryListener()
         medicineService.stopAllListeners()
+        
+        // Clear all data
         allMedicines = []
         currentHistory = []
+        
+        // Reset state
         appState = .initializing
         hasInitialized = false
+        displayLimit = 10
+        errorMessage = nil
+        
+        print("🧹 Cleanup complete")
     }
     
     deinit {

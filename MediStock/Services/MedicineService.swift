@@ -70,7 +70,9 @@ class FirebaseMedicineService: MedicineServiceProtocol {
             return
         }
         
+        // CRITICAL: Remove any existing listener FIRST
         medicinesListener?.remove()
+        medicinesListener = nil
         
         medicinesListener = db.collection("medicines")
             .order(by: "name")
@@ -102,7 +104,9 @@ class FirebaseMedicineService: MedicineServiceProtocol {
             return
         }
         
+        // CRITICAL: Remove any existing listener FIRST
         historyListener?.remove()
+        historyListener = nil
         
         historyListener = db.collection("history")
             .whereField("medicineId", isEqualTo: medicineId)
@@ -185,15 +189,18 @@ class FirebaseMedicineService: MedicineServiceProtocol {
     // MARK: - Cleanup
     
     func stopAllListeners() {
-        medicinesListener?.remove()
-        historyListener?.remove()
-        medicinesListener = nil
-        historyListener = nil
-    }
-    
-    deinit {
-        stopAllListeners()
-    }
+           medicinesListener?.remove()
+           historyListener?.remove()
+           medicinesListener = nil
+           historyListener = nil
+       }
+       
+       deinit {
+           // Ensure listeners are removed before deallocation
+           medicinesListener?.remove()
+           historyListener?.remove()
+           print("✅ FirebaseMedicineService deallocated")
+       }
 }
 
 // MARK: - Service Errors
