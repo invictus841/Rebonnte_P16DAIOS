@@ -110,10 +110,6 @@ struct LaunchScreenView: View {
                     Text("MediStock")
                         .font(.system(size: 42, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
-                    
-                    Text("Pharmacy Inventory Management")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.8))
                 }
                 
                 Spacer()
@@ -204,10 +200,6 @@ struct LaunchScreenView: View {
                     Text("MediStock v1.0.0")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.6))
-                    
-                    Text("© 2025 Your Pharmacy")
-                        .font(.caption2)
-                        .foregroundColor(.white.opacity(0.4))
                 }
                 .padding(.bottom, 20)
             }

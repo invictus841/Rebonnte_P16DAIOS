@@ -120,42 +120,6 @@ struct ProfileView: View {
                     }
                     .padding(.horizontal)
                     
-                    // Quick Actions Section
-                    GroupBox("Quick Actions") {
-                        VStack(spacing: 12) {
-                            NavigationLink(destination: AddMedicineView()) {
-                                HStack {
-                                    Image(systemName: "plus.circle.fill")
-                                        .foregroundColor(.green)
-                                    Text("Add New Medicine")
-                                        .foregroundColor(.primary)
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.vertical, 8)
-                            }
-                            
-                            Divider()
-                            
-                            Button(action: exportData) {
-                                HStack {
-                                    Image(systemName: "square.and.arrow.up")
-                                        .foregroundColor(.blue)
-                                    Text("Export Inventory")
-                                        .foregroundColor(.primary)
-                                    Spacer()
-                                    Text("CSV")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.vertical, 8)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                    .padding(.horizontal)
-                    
                     // Sign Out Section
                     VStack(spacing: 16) {
                         SecondaryButton("Sign Out") {
@@ -176,13 +140,6 @@ struct ProfileView: View {
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
         }
-    }
-    
-    // MARK: - Actions
-    
-    private func exportData() {
-        // TODO: Implement CSV export
-        print("Export inventory to CSV")
     }
 }
 
