@@ -4,35 +4,13 @@ struct AllMedicinesView: View {
     @EnvironmentObject var viewModel: MedicineStockViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var searchText = ""
-    @State private var sortBy: SortOption = .name
-    
     @State private var searchTask: Task<Void, Never>?
     
-    enum SortOption {
-        case name, stock, aisle
-    }
-    
     var filteredMedicines: [Medicine] {
-        var medicines = viewModel.allMedicines
-        
-        switch sortBy {
-        case .name:
-            medicines.sort { $0.name < $1.name }
-        case .stock:
-            medicines.sort { $0.stock < $1.stock }
-        case .aisle:
-            medicines.sort { med1, med2 in
-                let num1 = extractAisleNumber(from: med1.aisle)
-                let num2 = extractAisleNumber(from: med2.aisle)
-                return num1 < num2
-            }
-        }
-        
-        return medicines
+        return viewModel.allMedicines
     }
     
     private func extractAisleNumber(from aisle: String) -> Int {
-        // Extract number from "Aisle X" format
         let numberString = aisle.replacingOccurrences(of: "Aisle ", with: "")
         return Int(numberString) ?? 0
     }
@@ -76,9 +54,21 @@ struct AllMedicinesView: View {
                         .foregroundColor(.secondary)
                     
                     Menu {
-                        Button("Sort by Name") { sortBy = .name }
-                        Button("Sort by Stock") { sortBy = .stock }
-                        Button("Sort by Aisle") { sortBy = .aisle }
+                        Button("Sort by Name") {
+                            Task {
+                                await viewModel.changeSortOrder(to: .name)
+                            }
+                        }
+                        Button("Sort by Stock") {
+                            Task {
+                                await viewModel.changeSortOrder(to: .stock)
+                            }
+                        }
+                        Button("Sort by Aisle") {
+                            Task {
+                                await viewModel.changeSortOrder(to: .aisle)
+                            }
+                        }
                     } label: {
                         HStack {
                             Text(sortByLabel)
@@ -106,9 +96,7 @@ struct AllMedicinesView: View {
                             title: searchText.isEmpty ? "No Medicines" : "No Results",
                             message: searchText.isEmpty ?
                                 "Start by adding your first medicine" :
-                                "No medicines found matching '\(searchText)'",
-                            actionTitle: searchText.isEmpty ? "Add Medicine" : nil,
-                            action: searchText.isEmpty ? {} : nil
+                                "No medicines found matching '\(searchText)'"
                         )
                         .frame(maxWidth: .infinity)
                         .listRowBackground(Color.clear)

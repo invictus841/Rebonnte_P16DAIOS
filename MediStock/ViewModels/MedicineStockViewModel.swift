@@ -89,7 +89,7 @@ class MedicineStockViewModel: ObservableObject {
             
             print("✅ Loaded \(medicines.count) medicines (initial page, sorted by \(currentSortField.rawValue))")
             
-            startRealTimeUpdates()
+//            startRealTimeUpdates()
             
             try? await Task.sleep(nanoseconds: 500_000_000)
             
@@ -164,33 +164,59 @@ class MedicineStockViewModel: ObservableObject {
         currentSortField = field
         currentSortOrder = order
         
-        await loadInitialMedicines()
-    }
-    
-    func searchMedicines(query: String) async {
-        guard !query.isEmpty else {
-            await loadInitialMedicines()
-            return
-        }
-        
         medicineService.stopMedicinesListener()
         
         do {
             let medicines = try await medicineService.loadMedicines(
                 limit: pageSize,
                 startAfter: nil,
-                sortBy: currentSortField,
-                order: currentSortOrder
+                sortBy: field,
+                order: order
             )
             
-            let filtered = medicines.filter { medicine in
-                medicine.name.localizedCaseInsensitiveContains(query)
+            // If sorting by aisle, sort numerically instead of alphabetically
+            if field == .aisle {
+                let sorted = medicines.sorted { med1, med2 in
+                    let num1 = Int(med1.aisle.replacingOccurrences(of: "Aisle ", with: "")) ?? 0
+                    let num2 = Int(med2.aisle.replacingOccurrences(of: "Aisle ", with: "")) ?? 0
+                    return order == .ascending ? num1 < num2 : num1 > num2
+                }
+                allMedicines = sorted
+            } else {
+                allMedicines = medicines
             }
             
-            allMedicines = filtered
+            lastLoadedValue = getLastValue(from: medicines)
+            hasMoreMedicines = medicines.count == pageSize
+            
+            print("✅ Sorted by \(field.rawValue): loaded \(medicines.count) medicines")
+            
+        } catch {
+            print("❌ Error sorting: \(error)")
+            errorMessage = error.localizedDescription
+        }
+    }
+    
+    func searchMedicines(query: String) async {
+        guard !query.isEmpty else {
+            // Return to normal paginated view
+            await changeSortOrder(to: currentSortField, order: currentSortOrder)
+            return
+        }
+        
+        medicineService.stopMedicinesListener()
+        
+        do {
+            let medicines = try await medicineService.searchMedicines(
+                query: query,
+                limit: pageSize,
+                sortBy: currentSortField
+            )
+            
+            allMedicines = medicines
             hasMoreMedicines = false
             
-            print("🔍 Found \(filtered.count) medicines matching '\(query)' (from \(medicines.count) loaded, sorted by \(currentSortField.rawValue))")
+            print("🔍 Found \(medicines.count) medicines matching '\(query)'")
             
         } catch {
             print("❌ Search error: \(error)")
