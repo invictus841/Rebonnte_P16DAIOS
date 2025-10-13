@@ -16,7 +16,6 @@ struct MedicineDetailView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @Environment(\.dismiss) private var dismiss
     
-    // Get the current version of this medicine from the ViewModel
     private var currentMedicine: Medicine? {
         viewModel.medicine(withId: medicine.id ?? "")
     }
@@ -52,7 +51,6 @@ struct MedicineDetailView: View {
                         .pickerStyle(MenuPickerStyle())
                     }
                     
-                    // Save Changes Button (if edited)
                     if hasChanges {
                         PrimaryButton("Save Changes") {
                             saveChanges()
@@ -63,7 +61,6 @@ struct MedicineDetailView: View {
                 .background(Color(.systemGray6))
                 .cornerRadius(12)
                 
-                // Stock Management Card
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
                         Text("Stock Management")
@@ -77,14 +74,12 @@ struct MedicineDetailView: View {
                             .foregroundColor(stockColor)
                     }
                     
-                    // Add/Remove Toggle
                     Picker("Mode", selection: $isAddMode) {
                         Text("Add Stock").tag(true)
                         Text("Remove Stock").tag(false)
                     }
                     .pickerStyle(SegmentedPickerStyle())
                     
-                    // Quantity Selection
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("Quantity:")
@@ -125,7 +120,6 @@ struct MedicineDetailView: View {
                         }
                     }
                     
-                    // Apply Button
                     Button(action: applyStockChange) {
                         HStack {
                             Image(systemName: isAddMode ? "plus.circle" : "minus.circle")
@@ -138,7 +132,6 @@ struct MedicineDetailView: View {
                         .cornerRadius(12)
                     }
                     
-                    // Quick Actions
                     Text("Quick Actions")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -173,7 +166,6 @@ struct MedicineDetailView: View {
                 .background(Color(.systemGray6))
                 .cornerRadius(12)
                 
-                // History Section
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Recent History")
                         .font(.headline)

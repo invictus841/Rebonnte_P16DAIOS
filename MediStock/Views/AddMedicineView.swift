@@ -8,22 +8,18 @@
 import SwiftUI
 
 struct AddMedicineView: View {
-    // Form fields
     @State private var name = ""
     @State private var stock = 0
     @State private var aisleNumber = 1
     
-    // UI state
     @State private var showingValidationError = false
     @State private var validationMessage = ""
     @State private var isSaving = false
     
-    // Environment
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var viewModel: MedicineStockViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
     
-    // Focus management
     @FocusState private var focusedField: Field?
     
     private enum Field {
@@ -34,7 +30,6 @@ struct AddMedicineView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Header
                     VStack(spacing: 8) {
                         Image(systemName: "pills.circle.fill")
                             .font(.system(size: 60))
@@ -50,7 +45,6 @@ struct AddMedicineView: View {
                     }
                     .padding(.top, 20)
                     
-                    // Form
                     VStack(spacing: 20) {
                         CustomTextField(
                             "Medicine Name",
@@ -88,7 +82,6 @@ struct AddMedicineView: View {
                     }
                     .padding(.horizontal)
                     
-                    // Validation Error
                     if showingValidationError {
                         HStack(spacing: 8) {
                             Image(systemName: "exclamationmark.triangle.fill")
@@ -105,7 +98,6 @@ struct AddMedicineView: View {
                         .padding(.horizontal)
                     }
                     
-                    // Action Buttons
                     VStack(spacing: 12) {
                         PrimaryButton("Save Medicine", isLoading: isSaving) {
                             saveMedicine()
@@ -140,10 +132,8 @@ struct AddMedicineView: View {
     }
     
     private func validateForm() -> Bool {
-        // Clear previous errors
         showingValidationError = false
         
-        // Check name
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
         if trimmedName.isEmpty {
             validationMessage = "Please enter a medicine name"
@@ -157,7 +147,6 @@ struct AddMedicineView: View {
             return false
         }
         
-        // Check stock
         if stock < 0 {
             validationMessage = "Stock cannot be negative"
             showingValidationError = true
@@ -181,17 +170,13 @@ struct AddMedicineView: View {
     }
     
     private func saveMedicine() {
-        // Validate
         guard validateForm() else { return }
         
-        // Start saving
         isSaving = true
         
-        // Trim values
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
         let aisle = "Aisle \(aisleNumber)"
         
-        // Save to Firebase using clean ViewModel method
         Task {
             await viewModel.addMedicine(
                 name: trimmedName,
@@ -200,7 +185,6 @@ struct AddMedicineView: View {
                 user: authViewModel.userEmail
             )
             
-            // Check if there was an error
             if let error = viewModel.errorMessage {
                 await MainActor.run {
                     isSaving = false
@@ -209,7 +193,6 @@ struct AddMedicineView: View {
                     UINotificationFeedbackGenerator().notificationOccurred(.error)
                 }
             } else {
-                // Success - dismiss view
                 await MainActor.run {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                     dismiss()

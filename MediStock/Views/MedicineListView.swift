@@ -5,7 +5,6 @@ struct MedicineListView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     let aisle: String
     
-    // Simply filter from the already-loaded medicines
     var medicines: [Medicine] {
         viewModel.medicinesForAisle(aisle)
     }
@@ -18,9 +17,7 @@ struct MedicineListView: View {
                     title: "No Medicines",
                     message: "No medicines in \(aisle) yet",
                     actionTitle: "Add Medicine",
-                    action: {
-                        // This will be handled by NavigationLink
-                    }
+                    action: {}
                 )
             } else {
                 List {
@@ -50,7 +47,6 @@ struct MedicineListView: View {
                                 
                                 Spacer()
                                 
-                                // Stock indicator
                                 Circle()
                                     .fill(stockColor(medicine.stock))
                                     .frame(width: 10, height: 10)
@@ -62,7 +58,6 @@ struct MedicineListView: View {
                         deleteMedicines(at: indexSet)
                     }
                     
-                    // Footer
                     HStack {
                         Image(systemName: "info.circle")
                             .font(.caption)

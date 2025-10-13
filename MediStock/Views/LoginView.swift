@@ -33,21 +33,39 @@ struct LoginView: View {
                 
                 // Form
                 VStack(spacing: 16) {
-                    CustomTextField(
-                        "Email",
-                        text: $email,
-                        keyboardType: .emailAddress
-                    )
-                    .focused($focusedField, equals: .email)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                    VStack(alignment: .leading, spacing: 4) {
+                        CustomTextField(
+                            "Email",
+                            text: $email,
+                            keyboardType: .emailAddress
+                        )
+                        .focused($focusedField, equals: .email)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        
+                        if !email.isEmpty && !isValidEmail {
+                            Text("Email must be more than 3 characters and contain @")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                                .padding(.horizontal, 4)
+                        }
+                    }
                     
-                    CustomTextField(
-                        "Password",
-                        text: $password,
-                        isSecure: true
-                    )
-                    .focused($focusedField, equals: .password)
+                    VStack(alignment: .leading, spacing: 4) {
+                        CustomTextField(
+                            "Password",
+                            text: $password,
+                            isSecure: true
+                        )
+                        .focused($focusedField, equals: .password)
+                        
+                        if !password.isEmpty && password.count < 6 {
+                            Text("Password must be at least 6 characters")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                                .padding(.horizontal, 4)
+                        }
+                    }
                 }
                 
                 // Error Message
@@ -108,8 +126,12 @@ struct LoginView: View {
         }
     }
     
+    private var isValidEmail: Bool {
+        email.count > 3 && email.contains("@")
+    }
+    
     private var isFormValid: Bool {
-        !email.isEmpty && !password.isEmpty && password.count >= 6
+        isValidEmail && password.count >= 6
     }
 }
 
