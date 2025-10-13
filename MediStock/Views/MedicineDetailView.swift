@@ -225,17 +225,17 @@ struct MedicineDetailView: View {
         .navigationTitle(currentMedicine?.name ?? "Medicine")
         .navigationBarTitleDisplayMode(.inline)
         .overlay(successOverlay)
-        .onAppear {
-            // Only load history once
-            if !hasLoadedHistory, let id = medicine.id {
+        .task {
+            if let id = medicine.id {
                 viewModel.loadHistory(for: id)
                 hasLoadedHistory = true
             }
         }
         .onDisappear {
-            // Always stop the listener
+            viewModel.currentHistory = []
             viewModel.stopHistoryListener()
             hasLoadedHistory = false
+            print("🧹 Detail view dismissed - cleaned \(viewModel.currentHistory.count) history entries")
         }
     }
     
@@ -327,7 +327,6 @@ struct MedicineDetailView: View {
         showSuccessMessage = true
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         
-        // Use a timer instead of Task.sleep - it's simpler and doesn't leak
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             showSuccessMessage = false
         }

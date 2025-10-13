@@ -6,7 +6,6 @@
 //
 
 import Foundation
-// NO FIREBASE IMPORTS! 🚫
 
 @MainActor
 class AuthViewModel: ObservableObject {
@@ -18,11 +17,8 @@ class AuthViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isAuthenticated = false
     
-    // MARK: - Dependencies (Using Protocol!)
     
     private let authService: AuthServiceProtocol
-    
-    // MARK: - Initialization with Dependency Injection
     
     init(authService: AuthServiceProtocol = FirebaseAuthService()) {
         self.authService = authService
@@ -89,17 +85,15 @@ class AuthViewModel: ObservableObject {
     // MARK: - Private Methods
     
     private func startListening() {
-            authService.startAuthListener { [weak self] user in
-                // Simple dispatch to main queue to update UI
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.currentUser = user
-                    self.isAuthenticated = user != nil
-                }
+        authService.startAuthListener { [weak self] user in
+
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.currentUser = user
+                self.isAuthenticated = user != nil
             }
         }
-    
-    // MARK: - Convenience Properties
+    }
     
     var userEmail: String {
         currentUser?.email ?? ""
@@ -117,5 +111,6 @@ class AuthViewModel: ObservableObject {
     
     deinit {
         authService.stopAuthListener()
+        print("✅ AuthViewModel deallocated - No memory leak!")
     }
 }

@@ -27,24 +27,11 @@ struct AisleListView: View {
                                         .font(.headline)
                                     
                                     Spacer()
-                                    
-                                    // Show count of medicines in this aisle
-                                    let count = viewModel.medicinesForAisle(aisle).count
-                                    if count > 0 {
-                                        Text("\(count)")
-                                            .font(.caption)
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 2)
-                                            .background(Color.primaryAccent)
-                                            .cornerRadius(10)
-                                    }
                                 }
                                 .padding(.vertical, 8)
                             }
                         }
                         
-                        // Footer info
                         HStack {
                             Image(systemName: "info.circle")
                                 .font(.caption)

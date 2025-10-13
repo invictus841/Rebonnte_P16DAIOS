@@ -6,40 +6,33 @@ struct AllMedicinesView: View {
     @State private var searchText = ""
     @State private var sortBy: SortOption = .name
     
+    // ✅ NEW: Search debouncing
+    @State private var searchTask: Task<Void, Never>?
+    
     enum SortOption {
         case name, stock, aisle
     }
     
-    // Filter and sort medicines
+    // ✅ OPTIMIZED: Filter and sort medicines (locally for now, but much smaller dataset)
     var filteredMedicines: [Medicine] {
-            // Start with ALL medicines for sorting and searching
-            var medicines = viewModel.allMedicines
-            
-            // Search filter
-            if !searchText.isEmpty {
-                medicines = medicines.filter {
-                    $0.name.localizedCaseInsensitiveContains(searchText)
-                }
-            }
-            
-            // Sort
-            switch sortBy {
-            case .name:
-                medicines.sort { $0.name < $1.name }
-            case .stock:
-                medicines.sort { $0.stock < $1.stock }
-            case .aisle:
-                // Extract numbers from "Aisle X" and sort numerically
-                medicines.sort { med1, med2 in
-                    let num1 = extractAisleNumber(from: med1.aisle)
-                    let num2 = extractAisleNumber(from: med2.aisle)
-                    return num1 < num2
-                }
-            }
+        var medicines = viewModel.allMedicines
         
-        // Apply display limit AFTER sorting (only when not searching)
-        if searchText.isEmpty && viewModel.displayLimit < medicines.count {
-            medicines = Array(medicines.prefix(viewModel.displayLimit))
+        // ✅ Note: searchText filtering happens server-side now via searchMedicines()
+        // This is just for local sorting
+        
+        // Sort
+        switch sortBy {
+        case .name:
+            medicines.sort { $0.name < $1.name }
+        case .stock:
+            medicines.sort { $0.stock < $1.stock }
+        case .aisle:
+            // Extract numbers from "Aisle X" and sort numerically
+            medicines.sort { med1, med2 in
+                let num1 = extractAisleNumber(from: med1.aisle)
+                let num2 = extractAisleNumber(from: med2.aisle)
+                return num1 < num2
+            }
         }
         
         return medicines
@@ -55,44 +48,64 @@ struct AllMedicinesView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Search Bar
+                // ✅ IMPROVED: Search Bar with debouncing
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
                     TextField("Search medicines...", text: $searchText)
+                        .onChange(of: searchText) { oldValue, newValue in
+                            // ✅ Debounce search (wait 300ms after user stops typing)
+                            searchTask?.cancel()
+                            searchTask = Task {
+                                try? await Task.sleep(nanoseconds: 300_000_000)
+                                guard !Task.isCancelled else { return }
+                                await performSearch(query: newValue)
+                            }
+                        }
+                    
+                    if !searchText.isEmpty {
+                        Button(action: {
+                            searchText = ""
+                            Task {
+                                await performSearch(query: "")
+                            }
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
                 .padding(10)
                 .background(Color(.systemGray6))
                 .cornerRadius(10)
                 .padding()
                 
-                // Display Controls
+                // Sort Controls
                 HStack {
-                    Text("Show:")
+                    Text("Sort:")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
-                    Picker("Display", selection: $viewModel.displayLimit) {
-                        Text("10").tag(10)
-                        Text("25").tag(25)
-                        Text("50").tag(50)
-                        Text("100").tag(100)
-                        if viewModel.allMedicines.count > 100 {
-                            Text("All").tag(viewModel.allMedicines.count)
-                        }
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .frame(maxWidth: 250)
-                    
-                    Spacer()
                     
                     Menu {
                         Button("Sort by Name") { sortBy = .name }
                         Button("Sort by Stock") { sortBy = .stock }
                         Button("Sort by Aisle") { sortBy = .aisle }
                     } label: {
-                        Label("Sort", systemImage: "arrow.up.arrow.down")
-                            .font(.caption)
+                        HStack {
+                            Text(sortByLabel)
+                                .font(.caption)
+                            Image(systemName: "chevron.down")
+                                .font(.caption2)
+                        }
+                        .foregroundColor(.primaryAccent)
+                    }
+                    
+                    Spacer()
+                    
+                    // ✅ Show loading indicator when loading more
+                    if viewModel.isLoadingMore {
+                        ProgressView()
+                            .scaleEffect(0.8)
                     }
                 }
                 .padding(.horizontal)
@@ -103,12 +116,12 @@ struct AllMedicinesView: View {
                     if viewModel.allMedicines.isEmpty {
                         EmptyStateView(
                             systemName: "pills",
-                            title: "No Medicines",
-                            message: "Start by adding your first medicine",
-                            actionTitle: "Add Medicine",
-                            action: {
-                                // Will navigate via NavigationLink
-                            }
+                            title: searchText.isEmpty ? "No Medicines" : "No Results",
+                            message: searchText.isEmpty ?
+                                "Start by adding your first medicine" :
+                                "No medicines found matching '\(searchText)'",
+                            actionTitle: searchText.isEmpty ? "Add Medicine" : nil,
+                            action: searchText.isEmpty ? {} : nil
                         )
                         .frame(maxWidth: .infinity)
                         .listRowBackground(Color.clear)
@@ -157,13 +170,17 @@ struct AllMedicinesView: View {
                             deleteMedicines(at: indexSet, from: filteredMedicines)
                         }
                         
-                        // Show More Button
-                        if viewModel.hasMoreToShow && searchText.isEmpty {
-                            Button(action: { viewModel.showMore() }) {
+                        // ✅ FIXED: Load More Button - Only show when hasMoreMedicines is true!
+                        if viewModel.hasMoreMedicines && searchText.isEmpty && !viewModel.isLoadingMore {
+                            Button(action: {
+                                Task {
+                                    await viewModel.loadMoreMedicines()
+                                }
+                            }) {
                                 HStack {
                                     Spacer()
-                                    Image(systemName: "plus.circle")
-                                    Text("Show More")
+                                    Image(systemName: "arrow.down.circle")
+                                    Text("Load More Medicines")
                                     Spacer()
                                 }
                                 .foregroundColor(.primaryAccent)
@@ -171,16 +188,57 @@ struct AllMedicinesView: View {
                             }
                             .listRowBackground(Color.clear)
                         }
+                        
+                        // ✅ Loading indicator (shown while loading)
+                        if viewModel.isLoadingMore {
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text("Loading...")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                            }
+                            .padding()
+                            .listRowBackground(Color.clear)
+                        }
+                        
+                        // ✅ "All loaded" message - Only show when NO more medicines
+                        if !viewModel.hasMoreMedicines && !viewModel.allMedicines.isEmpty && searchText.isEmpty {
+                            HStack {
+                                Spacer()
+                                Image(systemName: "checkmark.circle")
+                                    .foregroundColor(.green)
+                                Text("All medicines loaded")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                            }
+                            .padding()
+                            .listRowBackground(Color.clear)
+                        }
                     }
                 }
                 .listStyle(PlainListStyle())
                 
-                // Status Bar
+                // ✅ IMPROVED: Status Bar with better info
                 if !viewModel.allMedicines.isEmpty {
                     HStack {
-                        Text("Showing \(filteredMedicines.count) of \(viewModel.allMedicines.count) medicines")
+                        Text("Showing \(filteredMedicines.count) medicine\(filteredMedicines.count == 1 ? "" : "s")")
                             .font(.caption)
                             .foregroundColor(.secondary)
+                        
+                        if viewModel.hasMoreMedicines && searchText.isEmpty {
+                            Text("• More available")
+                                .font(.caption)
+                                .foregroundColor(.primaryAccent)
+                        } else if !viewModel.hasMoreMedicines && searchText.isEmpty && viewModel.allMedicines.count > 20 {
+                            Text("• All loaded (\(viewModel.allMedicines.count) total)")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        }
+                        
                         Spacer()
                     }
                     .padding(.horizontal)
@@ -194,6 +252,19 @@ struct AllMedicinesView: View {
                     .font(.title3)
                     .foregroundColor(.primaryAccent)
             })
+        }
+    }
+    
+    // ✅ NEW: Perform server-side search
+    private func performSearch(query: String) async {
+        await viewModel.searchMedicines(query: query)
+    }
+    
+    private var sortByLabel: String {
+        switch viewModel.currentSortField {
+        case .name: return "Name"
+        case .stock: return "Stock"
+        case .aisle: return "Aisle"
         }
     }
     

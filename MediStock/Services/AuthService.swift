@@ -58,22 +58,16 @@ enum AuthResult {
 // MARK: - Auth Service Protocol
 
 protocol AuthServiceProtocol {
-    /// Current authenticated user
     var currentUser: User? { get }
     
-    /// Sign in with email and password
     func signIn(email: String, password: String) async -> AuthResult
     
-    /// Sign up with email and password
     func signUp(email: String, password: String) async -> AuthResult
     
-    /// Sign out current user
     func signOut() -> Result<Void, AuthError>
     
-    /// Start listening to auth state changes
     func startAuthListener(completion: @escaping (User?) -> Void)
     
-    /// Stop listening to auth state changes
     func stopAuthListener()
 }
 
@@ -117,7 +111,9 @@ class FirebaseAuthService: AuthServiceProtocol {
     }
     
     func startAuthListener(completion: @escaping (User?) -> Void) {
-        authHandle = Auth.auth().addStateDidChangeListener { _, firebaseUser in
+        authHandle = Auth.auth().addStateDidChangeListener { [weak self] _, firebaseUser in
+            guard self != nil else { return }
+            
             let user = firebaseUser.map { User(uid: $0.uid, email: $0.email) }
             completion(user)
         }
@@ -130,7 +126,6 @@ class FirebaseAuthService: AuthServiceProtocol {
         }
     }
     
-    // MARK: - Private Methods
     
     private func mapFirebaseError(_ error: Error) -> AuthError {
         let nsError = error as NSError
@@ -153,5 +148,6 @@ class FirebaseAuthService: AuthServiceProtocol {
     
     deinit {
         stopAuthListener()
+        print("✅ FirebaseAuthService deallocated - No memory leak!")
     }
 }
