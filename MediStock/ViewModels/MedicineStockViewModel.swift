@@ -22,7 +22,7 @@ class MedicineStockViewModel: ObservableObject {
     private var lastLoadedValue: Any?
     
     @Published var currentSortField: MedicineSortField = .name
-    @Published var currentSortOrder: SortOrder = .ascending
+    @Published var currentSortOrder: MedicineSortOrder = .ascending
     
     @Published var displayLimit = 20
     private let pageSize = 20
@@ -160,7 +160,7 @@ class MedicineStockViewModel: ObservableObject {
         isLoadingMore = false
     }
     
-    func changeSortOrder(to field: MedicineSortField, order: SortOrder = .ascending) async {
+    func changeSortOrder(to field: MedicineSortField, order: MedicineSortOrder = .ascending) async {
         currentSortField = field
         currentSortOrder = order
         
@@ -221,21 +221,6 @@ class MedicineStockViewModel: ObservableObject {
         } catch {
             print("❌ Search error: \(error)")
             errorMessage = error.localizedDescription
-        }
-    }
-    
-    private func startRealTimeUpdates() {
-        medicineService.startMedicinesListener { [weak self] medicines in
-            guard let self = self else { return }
-            
-            Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                guard case .ready = self.appState else { return }
-                
-                self.allMedicines = medicines.sorted { $0.name < $1.name }
-                
-                print("📡 Real-time update: \(medicines.count) medicines")
-            }
         }
     }
     
@@ -387,5 +372,6 @@ class MedicineStockViewModel: ObservableObject {
     
     deinit {
         medicineService.stopAllListeners()
+        print("🧹 deiniit")
     }
 }

@@ -17,7 +17,7 @@ enum MedicineSortField: String {
     case aisle
 }
 
-enum SortOrder {
+enum MedicineSortOrder {
     case ascending
     case descending
 }
@@ -27,7 +27,7 @@ protocol MedicineServiceProtocol {
     func loadAllMedicines() async throws -> [Medicine]
     
     // Paginated loading with sorting
-    func loadMedicines(limit: Int, startAfter: Any?, sortBy: MedicineSortField, order: SortOrder) async throws -> [Medicine]
+    func loadMedicines(limit: Int, startAfter: Any?, sortBy: MedicineSortField, order: MedicineSortOrder) async throws -> [Medicine]
     
     //Filtered queries with sorting
     func loadMedicines(forAisle aisle: String, limit: Int, sortBy: MedicineSortField) async throws -> [Medicine]
@@ -80,7 +80,7 @@ class FirebaseMedicineService: MedicineServiceProtocol {
         return medicines
     }
     
-    func loadMedicines(limit: Int, startAfter: Any?, sortBy: MedicineSortField, order: SortOrder) async throws -> [Medicine] {
+    func loadMedicines(limit: Int, startAfter: Any?, sortBy: MedicineSortField, order: MedicineSortOrder) async throws -> [Medicine] {
         guard Auth.auth().currentUser != nil else {
             throw MedicineServiceError.notAuthenticated
         }
