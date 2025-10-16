@@ -98,9 +98,24 @@ class MockMedicineService: MedicineServiceProtocol {
             throw MedicineServiceError.notAuthenticated
         }
         
-        return medicines.filter { 
-            $0.name.lowercased().contains(query.lowercased()) 
-        }.prefix(limit).map { $0 }
+        let filtered = medicines.filter {
+            $0.name.lowercased().contains(query.lowercased())
+        }
+        
+        let sorted = filtered.sorted { med1, med2 in
+            switch sortBy {
+            case .name:
+                return med1.name < med2.name
+            case .stock:
+                return med1.stock < med2.stock
+            case .aisle:
+                let num1 = Int(med1.aisle.replacingOccurrences(of: "Aisle ", with: "")) ?? 0
+                let num2 = Int(med2.aisle.replacingOccurrences(of: "Aisle ", with: "")) ?? 0
+                return num1 < num2
+            }
+        }
+        
+        return Array(sorted.prefix(limit))
     }
     
     // Get medicine count
