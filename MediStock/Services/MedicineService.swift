@@ -24,7 +24,7 @@ enum MedicineSortOrder {
 
 protocol MedicineServiceProtocol {
     // Initial load
-    func loadAllMedicines() async throws -> [Medicine]
+//    func loadAllMedicines() async throws -> [Medicine]
     
     // Paginated loading with sorting
     func loadMedicines(limit: Int, startAfter: Any?, sortBy: MedicineSortField, order: MedicineSortOrder) async throws -> [Medicine]
@@ -32,14 +32,14 @@ protocol MedicineServiceProtocol {
     //Filtered queries with sorting
     func loadMedicines(forAisle aisle: String, limit: Int, sortBy: MedicineSortField) async throws -> [Medicine]
     func searchMedicines(query: String, limit: Int, sortBy: MedicineSortField) async throws -> [Medicine]
-    func getMedicineCount(forAisle aisle: String?) async throws -> Int
+//    func getMedicineCount(forAisle aisle: String?) async throws -> Int
     
     // Real-time listener
     func startMedicinesListener(completion: @escaping ([Medicine]) -> Void)
     func stopMedicinesListener()
     
     //Filtered listener for specific aisle
-    func startMedicinesListener(forAisle aisle: String, completion: @escaping ([Medicine]) -> Void)
+//    func startMedicinesListener(forAisle aisle: String, completion: @escaping ([Medicine]) -> Void)
     
     // History
     func startHistoryListener(for medicineId: String, completion: @escaping ([HistoryEntry]) -> Void)

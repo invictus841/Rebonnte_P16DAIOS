@@ -24,7 +24,7 @@ class MedicineStockViewModel: ObservableObject {
     @Published var currentSortField: MedicineSortField = .name
     @Published var currentSortOrder: MedicineSortOrder = .ascending
     
-    @Published var displayLimit = 20
+//    @Published var displayLimit = 20
     private let pageSize = 20
     
     private let medicineService: MedicineServiceProtocol
@@ -35,16 +35,16 @@ class MedicineStockViewModel: ObservableObject {
         return Array(uniqueAisles).sorted()
     }
     
-    var displayedMedicines: [Medicine] {
-        Array(allMedicines.prefix(displayLimit))
-    }
+//    var displayedMedicines: [Medicine] {
+//        Array(allMedicines.prefix(displayLimit))
+//    }
     
-    var hasMoreToShow: Bool {
-        if displayLimit < allMedicines.count {
-            return true
-        }
-        return hasMoreMedicines
-    }
+//    var hasMoreToShow: Bool {
+//        if displayLimit < allMedicines.count {
+//            return true
+//        }
+//        return hasMoreMedicines
+//    }
     
     func medicinesForAisle(_ aisle: String) -> [Medicine] {
         allMedicines.filter { $0.aisle == aisle }
@@ -247,19 +247,19 @@ class MedicineStockViewModel: ObservableObject {
         print("🛑 History listener stopped - cleared \(count) entries")
     }
     
-    func showMore() {
-        if displayLimit < allMedicines.count {
-            displayLimit = min(displayLimit + 20, allMedicines.count)
-        } else {
-            Task {
-                await loadMoreMedicines()
-            }
-        }
-    }
+//    func showMore() {
+//        if displayLimit < allMedicines.count {
+//            displayLimit = min(displayLimit + 20, allMedicines.count)
+//        } else {
+//            Task {
+//                await loadMoreMedicines()
+//            }
+//        }
+//    }
     
-    func setDisplayLimit(_ limit: Int) {
-        displayLimit = limit
-    }
+//    func setDisplayLimit(_ limit: Int) {
+//        displayLimit = limit
+//    }
     
     func addMedicine(name: String, stock: Int, aisle: String, user: String) async {
         let medicine = Medicine(name: name, stock: stock, aisle: aisle)
@@ -364,7 +364,7 @@ class MedicineStockViewModel: ObservableObject {
         
         appState = .initializing
         hasInitialized = false
-        displayLimit = 20
+//        displayLimit = 20
         errorMessage = nil
         
         print("🧹 Cleanup complete")

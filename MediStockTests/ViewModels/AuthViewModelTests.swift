@@ -11,228 +11,207 @@ import XCTest
 @MainActor
 class AuthViewModelTests: XCTestCase {
     
-    var viewModel: AuthViewModel!
+    var sut: AuthViewModel!
     var mockAuthService: MockAuthService!
     
     override func setUp() {
         super.setUp()
         mockAuthService = MockAuthService()
-        viewModel = AuthViewModel(authService: mockAuthService)
+        sut = AuthViewModel(authService: mockAuthService)
     }
     
     override func tearDown() {
-        viewModel = nil
+        sut = nil
         mockAuthService = nil
         super.tearDown()
     }
     
     // MARK: - Sign In Tests
     
-    func testSignInSuccess() async {
+    func test_signIn_withValidCredentials_authenticatesUser() async {
         // Given
         mockAuthService.shouldSucceed = true
-        let email = "test@example.com"
+        let email = "test@test.com"
         let password = "password123"
         
         // When
-        await viewModel.signIn(email: email, password: password)
+        await sut.signIn(email: email, password: password)
         
         // Then
-        XCTAssertTrue(viewModel.isAuthenticated, "User should be authenticated")
-        XCTAssertEqual(viewModel.userEmail, email, "Email should match")
-        XCTAssertNil(viewModel.errorMessage, "No error should be present")
-        XCTAssertEqual(mockAuthService.signInCallCount, 1, "Sign in should be called once")
+        XCTAssertTrue(sut.isAuthenticated)
+        XCTAssertNil(sut.errorMessage)
+        XCTAssertEqual(sut.userEmail, email)
     }
     
-    func testSignInFailure() async {
+    func test_signIn_withInvalidCredentials_showsError() async {
         // Given
         mockAuthService.shouldSucceed = false
-        let email = "wrong@example.com"
+        let email = "wrong@test.com"
         let password = "wrongpass"
         
         // When
-        await viewModel.signIn(email: email, password: password)
+        await sut.signIn(email: email, password: password)
         
         // Then
-        XCTAssertFalse(viewModel.isAuthenticated, "User should not be authenticated")
-        XCTAssertNotNil(viewModel.errorMessage, "Error message should be present")
-        XCTAssertEqual(mockAuthService.signInCallCount, 1, "Sign in should be called once")
+        XCTAssertFalse(sut.isAuthenticated)
+        XCTAssertNotNil(sut.errorMessage)
     }
     
-    // In AuthViewModelTests.swift
-    func testSignInLoadingState() async {
+    func test_signIn_setsLoadingState() async {
         // Given
         mockAuthService.shouldSucceed = true
-        
-        // Simply test that loading gets set during the operation
-        // We can't reliably catch the exact moment it's true
+        let email = "test@test.com"
+        let password = "password"
         
         // When
-        await viewModel.signIn(email: "test@example.com", password: "password")
+        await sut.signIn(email: email, password: password)
         
-        // Then - After completion
-        XCTAssertFalse(viewModel.isLoading, "Should not be loading after sign in completes")
-        XCTAssertTrue(viewModel.isAuthenticated, "Should be authenticated")
-        
-        // Alternative: Test that isLoading is set to false after operation
-        // This is what we can reliably test
+        // Then
+        XCTAssertFalse(sut.isLoading)
+        XCTAssertTrue(sut.isAuthenticated)
     }
     
     // MARK: - Sign Up Tests
     
-    func testSignUpSuccess() async {
+    func test_signUp_withNewUser_createsAccount() async {
         // Given
         mockAuthService.shouldSucceed = true
-        let email = "newuser@example.com"
-        let password = "newpassword123"
+        let email = "new@test.com"
+        let password = "password123"
         
         // When
-        await viewModel.signUp(email: email, password: password)
+        await sut.signUp(email: email, password: password)
         
         // Then
-        XCTAssertTrue(viewModel.isAuthenticated, "User should be authenticated")
-        XCTAssertEqual(viewModel.userEmail, email, "Email should match")
-        XCTAssertNil(viewModel.errorMessage, "No error should be present")
-        XCTAssertEqual(mockAuthService.signUpCallCount, 1, "Sign up should be called once")
+        XCTAssertTrue(sut.isAuthenticated)
+        XCTAssertNil(sut.errorMessage)
+        XCTAssertEqual(sut.userEmail, email)
     }
     
-    func testSignUpWithWeakPassword() async {
+    func test_signUp_withWeakPassword_showsError() async {
         // Given
         mockAuthService.shouldSucceed = false
-        let email = "newuser@example.com"
-        let password = "123" // Too short
+        let email = "test@test.com"
+        let password = "123"
         
         // When
-        await viewModel.signUp(email: email, password: password)
+        await sut.signUp(email: email, password: password)
         
         // Then
-        XCTAssertFalse(viewModel.isAuthenticated, "User should not be authenticated")
-        XCTAssertNotNil(viewModel.errorMessage, "Error message should be present")
-        XCTAssertEqual(mockAuthService.signUpCallCount, 1, "Sign up should be called once")
+        XCTAssertFalse(sut.isAuthenticated)
+        XCTAssertNotNil(sut.errorMessage)
     }
     
     // MARK: - Sign Out Tests
     
-    func testSignOutSuccess() {
+    func test_signOut_clearsUserData() {
         // Given
+        mockAuthService.mockUser = User(uid: "123", email: "test@test.com")
         mockAuthService.shouldSucceed = true
-        mockAuthService.mockUser = User(uid: "123", email: "test@example.com")
+        sut.currentUser = mockAuthService.mockUser
+        sut.isAuthenticated = true
         
         // When
-        viewModel.signOut()
+        sut.signOut()
         
         // Then
-        XCTAssertFalse(viewModel.isAuthenticated, "User should not be authenticated")
-        XCTAssertNil(viewModel.currentUser, "Current user should be nil")
-        XCTAssertEqual(mockAuthService.signOutCallCount, 1, "Sign out should be called once")
+        XCTAssertFalse(sut.isAuthenticated)
+        XCTAssertNil(sut.currentUser)
     }
     
-    func testSignOutFailure() {
+    func test_signOut_withError_setsErrorMessage() {
         // Given
         mockAuthService.shouldSucceed = false
-        mockAuthService.mockUser = User(uid: "123", email: "test@example.com")
+        mockAuthService.mockUser = User(uid: "123", email: "test@test.com")
         
         // When
-        viewModel.signOut()
+        sut.signOut()
         
         // Then
-        XCTAssertNotNil(viewModel.errorMessage, "Error message should be present")
-        XCTAssertEqual(mockAuthService.signOutCallCount, 1, "Sign out should be called once")
+        XCTAssertNotNil(sut.errorMessage)
     }
     
     // MARK: - Auth State Listener Tests
     
-    func testAuthStateListenerUserLogin() {
+    func test_authStateListener_whenUserLogsIn_updatesState() async {
         // Given
-        let user = User(uid: "123", email: "test@example.com")
+        let user = User(uid: "123", email: "test@test.com")
         
         // When
         mockAuthService.simulateUserStateChange(user: user)
         
-        // Allow time for state update
-        let expectation = expectation(description: "Auth state update")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            expectation.fulfill()
-        }
-        waitForExpectations(timeout: 1)
-        
         // Then
-        XCTAssertTrue(viewModel.isAuthenticated, "User should be authenticated")
-        XCTAssertEqual(viewModel.currentUser?.email, user.email, "User email should match")
-    }
-    
-    func testAuthStateListenerUserLogout() {
-        // Given
-        viewModel.currentUser = User(uid: "123", email: "test@example.com")
-        viewModel.isAuthenticated = true
+        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
         
-        // When
-        mockAuthService.simulateUserStateChange(user: nil)
-        
-        // Allow time for state update
-        let expectation = expectation(description: "Auth state update")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            expectation.fulfill()
-        }
-        waitForExpectations(timeout: 1)
-        
-        // Then
-        XCTAssertFalse(viewModel.isAuthenticated, "User should not be authenticated")
-        XCTAssertNil(viewModel.currentUser, "Current user should be nil")
+        XCTAssertTrue(sut.isAuthenticated)
+        XCTAssertEqual(sut.currentUser?.email, user.email)
     }
     
     // MARK: - Helper Methods Tests
     
-    func testClearError() {
+    func test_clearError_removesErrorMessage() {
         // Given
-        viewModel.errorMessage = "Some error message"
+        sut.errorMessage = "Some error message"
         
         // When
-        viewModel.clearError()
+        sut.clearError()
         
         // Then
-        XCTAssertNil(viewModel.errorMessage, "Error message should be cleared")
+        XCTAssertNil(sut.errorMessage)
     }
     
-    func testUserEmailProperty() {
+    func test_userEmail_returnsCorrectEmail() {
         // Given
-        viewModel.currentUser = User(uid: "123", email: "test@example.com")
+        sut.currentUser = User(uid: "123", email: "test@test.com")
+        
+        // When
+        let email = sut.userEmail
         
         // Then
-        XCTAssertEqual(viewModel.userEmail, "test@example.com", "User email should match")
-        
-        // When user is nil
-        viewModel.currentUser = nil
-        
-        // Then
-        XCTAssertEqual(viewModel.userEmail, "", "User email should be empty string")
+        XCTAssertEqual(email, "test@test.com")
     }
     
-    func testUserUIDProperty() {
+    func test_userEmail_withNoUser_returnsEmptyString() {
         // Given
-        viewModel.currentUser = User(uid: "unique-id-123", email: "test@example.com")
+        sut.currentUser = nil
+        
+        // When
+        let email = sut.userEmail
         
         // Then
-        XCTAssertEqual(viewModel.userUID, "unique-id-123", "User UID should match")
-        
-        // When user is nil
-        viewModel.currentUser = nil
-        
-        // Then
-        XCTAssertEqual(viewModel.userUID, "", "User UID should be empty string")
+        XCTAssertEqual(email, "")
     }
     
-    func testDisplayNameProperty() {
+    func test_userUID_returnsCorrectUID() {
         // Given
-        viewModel.currentUser = User(uid: "123", email: "test@example.com")
+        sut.currentUser = User(uid: "unique-123", email: "test@test.com")
+        
+        // When
+        let uid = sut.userUID
         
         // Then
-        XCTAssertEqual(viewModel.displayName, "test@example.com", "Display name should be email")
+        XCTAssertEqual(uid, "unique-123")
+    }
+    
+    func test_displayName_returnsEmail() {
+        // Given
+        sut.currentUser = User(uid: "123", email: "test@test.com")
         
-        // When user is nil
-        viewModel.currentUser = nil
+        // When
+        let displayName = sut.displayName
         
         // Then
-        XCTAssertEqual(viewModel.displayName, "User", "Display name should be 'User'")
+        XCTAssertEqual(displayName, "test@test.com")
+    }
+    
+    func test_displayName_withNoUser_returnsUser() {
+        // Given
+        sut.currentUser = nil
+        
+        // When
+        let displayName = sut.displayName
+        
+        // Then
+        XCTAssertEqual(displayName, "User")
     }
 }

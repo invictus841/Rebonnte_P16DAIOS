@@ -10,10 +10,10 @@ struct AllMedicinesView: View {
         return viewModel.allMedicines
     }
     
-    private func extractAisleNumber(from aisle: String) -> Int {
-        let numberString = aisle.replacingOccurrences(of: "Aisle ", with: "")
-        return Int(numberString) ?? 0
-    }
+//    private func extractAisleNumber(from aisle: String) -> Int {
+//        let numberString = aisle.replacingOccurrences(of: "Aisle ", with: "")
+//        return Int(numberString) ?? 0
+//    }
 
     var body: some View {
         NavigationView {
