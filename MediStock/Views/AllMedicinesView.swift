@@ -259,55 +259,6 @@ struct AllMedicinesView: View {
     }
 }
 
-// MARK: - Medicine Row Component
-struct MedicineRow: View {
-    let medicine: Medicine
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading) {
-                Text(medicine.name)
-                    .font(.headline)
-                Text(medicine.aisle)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            HStack(spacing: 4) {
-                if medicine.stock == 0 {
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .font(.caption)
-                        .foregroundColor(.red)
-                } else if medicine.stock < 10 {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                }
-                
-                Text("\(medicine.stock)")
-                    .font(.system(.body, design: .rounded))
-                    .fontWeight(.semibold)
-                    .foregroundColor(stockColor)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(stockColor.opacity(0.15))
-            )
-        }
-        .padding(.vertical, 4)
-    }
-    
-    private var stockColor: Color {
-        if medicine.stock == 0 { return .red }
-        if medicine.stock < 10 { return .orange }
-        return .green
-    }
-}
-
 // MARK: - Preview
 struct AllMedicinesView_Previews: PreviewProvider {
     static var previews: some View {

@@ -30,7 +30,7 @@ class MedicineStockViewModel: ObservableObject {
     private let medicineService: MedicineServiceProtocol
     private var hasInitialized = false
     
-    var aisles: [String] {
+    var aisles: [Int] {
         let uniqueAisles = Set(allMedicines.map { $0.aisle })
         return Array(uniqueAisles).sorted()
     }
@@ -46,7 +46,7 @@ class MedicineStockViewModel: ObservableObject {
 //        return hasMoreMedicines
 //    }
     
-    func medicinesForAisle(_ aisle: String) -> [Medicine] {
+    func medicinesForAisle(_ aisle: Int) -> [Medicine] {
         allMedicines.filter { $0.aisle == aisle }
     }
     
@@ -174,17 +174,7 @@ class MedicineStockViewModel: ObservableObject {
                 order: order
             )
             
-            // If sorting by aisle, sort numerically instead of alphabetically
-            if field == .aisle {
-                let sorted = medicines.sorted { med1, med2 in
-                    let num1 = Int(med1.aisle.replacingOccurrences(of: "Aisle ", with: "")) ?? 0
-                    let num2 = Int(med2.aisle.replacingOccurrences(of: "Aisle ", with: "")) ?? 0
-                    return order == .ascending ? num1 < num2 : num1 > num2
-                }
-                allMedicines = sorted
-            } else {
-                allMedicines = medicines
-            }
+            allMedicines = medicines
             
             lastLoadedValue = getLastValue(from: medicines)
             hasMoreMedicines = medicines.count == pageSize
@@ -261,7 +251,7 @@ class MedicineStockViewModel: ObservableObject {
 //        displayLimit = limit
 //    }
     
-    func addMedicine(name: String, stock: Int, aisle: String, user: String) async {
+    func addMedicine(name: String, stock: Int, aisle: Int, user: String) async {
         let medicine = Medicine(name: name, stock: stock, aisle: aisle)
         
         do {
@@ -271,7 +261,7 @@ class MedicineStockViewModel: ObservableObject {
                 medicineId: medicine.id ?? "",
                 user: user,
                 action: "Added \(name)",
-                details: "Initial stock: \(stock) in \(aisle)"
+                details: "Initial stock: \(stock) in Aisle \(aisle)"
             )
             try await medicineService.addHistoryEntry(entry)
             

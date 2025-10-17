@@ -175,7 +175,7 @@ struct AddMedicineView: View {
         isSaving = true
         
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
-        let aisle = "Aisle \(aisleNumber)"
+        let aisle = aisleNumber
         
         Task {
             await viewModel.addMedicine(

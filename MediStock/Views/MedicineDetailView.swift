@@ -24,7 +24,7 @@ struct MedicineDetailView: View {
         self.medicine = medicine
         self._editedName = State(initialValue: medicine.name)
         
-        let aisleNum = Int(medicine.aisle.replacingOccurrences(of: "Aisle ", with: "")) ?? 1
+        let aisleNum = medicine.aisle
         self._editedAisleNumber = State(initialValue: aisleNum)
     }
     
@@ -236,7 +236,7 @@ struct MedicineDetailView: View {
     private var hasChanges: Bool {
         guard let current = currentMedicine else { return false }
         return editedName != current.name ||
-               "Aisle \(editedAisleNumber)" != current.aisle
+               editedAisleNumber != current.aisle
     }
     
     private var stockColor: Color {
@@ -307,7 +307,7 @@ struct MedicineDetailView: View {
         guard var updated = currentMedicine else { return }
         
         updated.name = editedName
-        updated.aisle = "Aisle \(editedAisleNumber)"
+        updated.aisle = editedAisleNumber
         
         Task {
             await viewModel.updateMedicine(updated, user: authViewModel.userEmail)
@@ -328,7 +328,7 @@ struct MedicineDetailView: View {
 struct MedicineDetailView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            MedicineDetailView(medicine: Medicine(id: "1", name: "Aspirin", stock: 25, aisle: "Aisle 1"))
+            MedicineDetailView(medicine: Medicine(id: "1", name: "Aspirin", stock: 25, aisle: 1))
                 .environmentObject(AuthViewModel())
                 .environmentObject(MedicineStockViewModel())
         }

@@ -23,7 +23,7 @@ struct AisleListView: View {
                                         .foregroundColor(.primaryAccent)
                                         .frame(width: 30)
                                     
-                                    Text(aisle)
+                                    Text("Aisle \(aisle)")
                                         .font(.headline)
                                     
                                     Spacer()

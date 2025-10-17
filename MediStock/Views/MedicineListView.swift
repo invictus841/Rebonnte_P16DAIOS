@@ -3,7 +3,7 @@ import SwiftUI
 struct MedicineListView: View {
     @EnvironmentObject var viewModel: MedicineStockViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
-    let aisle: String
+    let aisle: Int
     
     var medicines: [Medicine] {
         viewModel.medicinesForAisle(aisle)
@@ -15,7 +15,7 @@ struct MedicineListView: View {
                 EmptyStateView(
                     systemName: "pills",
                     title: "No Medicines",
-                    message: "No medicines in \(aisle) yet",
+                    message: "No medicines in Aisle \(aisle) yet",
                     actionTitle: "Add Medicine",
                     action: {}
                 )
@@ -23,35 +23,7 @@ struct MedicineListView: View {
                 List {
                     ForEach(medicines, id: \.id) { medicine in
                         NavigationLink(destination: MedicineDetailView(medicine: medicine)) {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(medicine.name)
-                                        .font(.headline)
-                                    
-                                    HStack {
-                                        Text("Stock: \(medicine.stock)")
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                        
-                                        if medicine.stock == 0 {
-                                            Label("Out of Stock", systemImage: "exclamationmark.circle.fill")
-                                                .font(.caption)
-                                                .foregroundColor(.red)
-                                        } else if medicine.stock < 10 {
-                                            Label("Low Stock", systemImage: "exclamationmark.triangle.fill")
-                                                .font(.caption)
-                                                .foregroundColor(.orange)
-                                        }
-                                    }
-                                }
-                                
-                                Spacer()
-                                
-                                Circle()
-                                    .fill(stockColor(medicine.stock))
-                                    .frame(width: 10, height: 10)
-                            }
-                            .padding(.vertical, 4)
+                            MedicineRow(medicine: medicine)
                         }
                     }
                     .onDelete { indexSet in
@@ -61,7 +33,7 @@ struct MedicineListView: View {
                     HStack {
                         Image(systemName: "info.circle")
                             .font(.caption)
-                        Text("\(medicines.count) medicine\(medicines.count == 1 ? "" : "s") in \(aisle)")
+                        Text("\(medicines.count) medicine\(medicines.count == 1 ? "" : "s") in Aisle \(aisle)")
                             .font(.caption)
                     }
                     .foregroundColor(.secondary)
@@ -69,17 +41,11 @@ struct MedicineListView: View {
                 }
             }
         }
-        .navigationTitle(aisle)
+        .navigationTitle("Aisle \(aisle)")
         .navigationBarItems(trailing: NavigationLink(destination: AddMedicineView()) {
             Image(systemName: "plus")
                 .foregroundColor(.primaryAccent)
         })
-    }
-    
-    private func stockColor(_ stock: Int) -> Color {
-        if stock == 0 { return .red }
-        if stock < 10 { return .orange }
-        return .green
     }
     
     private func deleteMedicines(at offsets: IndexSet) {
@@ -101,7 +67,7 @@ struct MedicineListView: View {
 struct MedicineListView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            MedicineListView(aisle: "Aisle 1")
+            MedicineListView(aisle: 1)
                 .environmentObject(AuthViewModel())
                 .environmentObject(MedicineStockViewModel())
         }

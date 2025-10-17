@@ -130,31 +130,13 @@ class FirebaseMedicineService: MedicineServiceProtocol {
         let queryUpper = query + "\u{f8ff}"
         
         let snapshot = try await db.collection("medicines")
-            .order(by: "name")
             .whereField("name", isGreaterThanOrEqualTo: query)
             .whereField("name", isLessThan: queryUpper)
+            .order(by: sortBy.rawValue, descending: false)
             .limit(to: limit)
             .getDocuments()
-        
-        let medicines = snapshot.documents.compactMap { document in
-            try? document.data(as: Medicine.self)
-        }
-        
-        let sorted = medicines.sorted { med1, med2 in
-            switch sortBy {
-            case .name:
-                return med1.name < med2.name
-            case .stock:
-                return med1.stock < med2.stock
-            case .aisle:
-                let num1 = Int(med1.aisle.replacingOccurrences(of: "Aisle ", with: "")) ?? 0
-                let num2 = Int(med2.aisle.replacingOccurrences(of: "Aisle ", with: "")) ?? 0
-                return num1 < num2
-            }
-        }
-        
-        print("🔍 Found \(sorted.count) medicines matching '\(query)' (sorted by \(sortBy.rawValue))")
-        return sorted
+
+        return snapshot.documents.compactMap { try? $0.data(as: Medicine.self) }
     }
     
     func getMedicineCount(forAisle aisle: String?) async throws -> Int {
