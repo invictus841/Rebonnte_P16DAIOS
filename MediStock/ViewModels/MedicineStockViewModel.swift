@@ -24,8 +24,7 @@ class MedicineStockViewModel: ObservableObject {
     @Published var currentSortField: MedicineSortField = .name
     @Published var currentSortOrder: MedicineSortOrder = .ascending
     
-//    @Published var displayLimit = 20
-    private let pageSize = 20
+    private let pageSize = 2
     
     private let medicineService: MedicineServiceProtocol
     private var hasInitialized = false
@@ -34,17 +33,6 @@ class MedicineStockViewModel: ObservableObject {
         let uniqueAisles = Set(allMedicines.map { $0.aisle })
         return Array(uniqueAisles).sorted()
     }
-    
-//    var displayedMedicines: [Medicine] {
-//        Array(allMedicines.prefix(displayLimit))
-//    }
-    
-//    var hasMoreToShow: Bool {
-//        if displayLimit < allMedicines.count {
-//            return true
-//        }
-//        return hasMoreMedicines
-//    }
     
     func medicinesForAisle(_ aisle: Int) -> [Medicine] {
         allMedicines.filter { $0.aisle == aisle }
@@ -58,19 +46,21 @@ class MedicineStockViewModel: ObservableObject {
         self.medicineService = medicineService
     }
     
+    // Simple initialization without launch screen
     func initializeApp() async {
         guard !hasInitialized else { return }
         hasInitialized = true
         
         appState = .loading
-        loadingProgress = 0.1
         
+        // Load initial batch of medicines
         await loadInitialMedicines()
+        
+        appState = .ready
     }
     
+    // Load first page of medicines
     private func loadInitialMedicines() async {
-        loadingProgress = 0.3
-        
         do {
             let medicines = try await medicineService.loadMedicines(
                 limit: pageSize,
@@ -79,39 +69,29 @@ class MedicineStockViewModel: ObservableObject {
                 order: currentSortOrder
             )
             
-            loadingProgress = 0.6
-            
             allMedicines = medicines
             lastLoadedValue = getLastValue(from: medicines)
             hasMoreMedicines = medicines.count == pageSize
             
-            loadingProgress = 0.9
-            
-            print("✅ Loaded \(medicines.count) medicines (initial page, sorted by \(currentSortField.rawValue))")
-            
-//            startRealTimeUpdates()
-            
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            
-            loadingProgress = 1.0
-            appState = .ready
+            print("✅ Loaded \(medicines.count) medicines (initial page)")
             
         } catch {
             print("❌ Error loading medicines: \(error)")
-            appState = .error(error.localizedDescription)
+            errorMessage = error.localizedDescription
         }
     }
     
-    private func getLastValue(from medicines: [Medicine]) -> Any? {
-        guard let last = medicines.last else { return nil }
-        
-        switch currentSortField {
-        case .name:
-            return last.name
-        case .stock:
-            return last.stock
-        case .aisle:
-            return last.aisle
+    // Helper to sort medicines
+    private func sortMedicines(_ medicines: [Medicine]) -> [Medicine] {
+        medicines.sorted { med1, med2 in
+            switch currentSortField {
+            case .name:
+                return currentSortOrder == .ascending ? med1.name < med2.name : med1.name > med2.name
+            case .stock:
+                return currentSortOrder == .ascending ? med1.stock < med2.stock : med1.stock > med2.stock
+            case .aisle:
+                return currentSortOrder == .ascending ? med1.aisle < med2.aisle : med1.aisle > med2.aisle
+            }
         }
     }
     
@@ -160,46 +140,45 @@ class MedicineStockViewModel: ObservableObject {
         isLoadingMore = false
     }
     
+    private func getLastValue(from medicines: [Medicine]) -> Any? {
+        guard let last = medicines.last else { return nil }
+        
+        switch currentSortField {
+        case .name:
+            return last.name
+        case .stock:
+            return last.stock
+        case .aisle:
+            return last.aisle
+        }
+    }
+    
     func changeSortOrder(to field: MedicineSortField, order: MedicineSortOrder = .ascending) async {
         currentSortField = field
         currentSortOrder = order
         
-        medicineService.stopMedicinesListener()
+        // Reload with new sort order
+        lastLoadedValue = nil
+        hasMoreMedicines = true
         
-        do {
-            let medicines = try await medicineService.loadMedicines(
-                limit: pageSize,
-                startAfter: nil,
-                sortBy: field,
-                order: order
-            )
-            
-            allMedicines = medicines
-            
-            lastLoadedValue = getLastValue(from: medicines)
-            hasMoreMedicines = medicines.count == pageSize
-            
-            print("✅ Sorted by \(field.rawValue): loaded \(medicines.count) medicines")
-            
-        } catch {
-            print("❌ Error sorting: \(error)")
-            errorMessage = error.localizedDescription
-        }
+        await loadInitialMedicines()
+        
+        print("✅ Sorted by \(field.rawValue)")
     }
     
     func searchMedicines(query: String) async {
         guard !query.isEmpty else {
-            // Return to normal paginated view
-            await changeSortOrder(to: currentSortField, order: currentSortOrder)
+            // Return to normal view - reload initial medicines
+            lastLoadedValue = nil
+            hasMoreMedicines = true
+            await loadInitialMedicines()
             return
         }
-        
-        medicineService.stopMedicinesListener()
         
         do {
             let medicines = try await medicineService.searchMedicines(
                 query: query,
-                limit: pageSize,
+                limit: 50, // More results for search
                 sortBy: currentSortField
             )
             
@@ -231,30 +210,13 @@ class MedicineStockViewModel: ObservableObject {
     func stopHistoryListener() {
         let count = currentHistory.count
         medicineService.stopHistoryListener()
-        
         currentHistory.removeAll()
-        
         print("🛑 History listener stopped - cleared \(count) entries")
     }
     
-//    func showMore() {
-//        if displayLimit < allMedicines.count {
-//            displayLimit = min(displayLimit + 20, allMedicines.count)
-//        } else {
-//            Task {
-//                await loadMoreMedicines()
-//            }
-//        }
-//    }
-    
-//    func setDisplayLimit(_ limit: Int) {
-//        displayLimit = limit
-//    }
-    
     func addMedicine(name: String, stock: Int, aisle: Int, user: String) async {
-        let medicine = Medicine(name: name, stock: stock, aisle: aisle)
-        
         do {
+            let medicine = Medicine(name: name, stock: stock, aisle: aisle)
             try await medicineService.addMedicine(medicine)
             
             let entry = HistoryEntry(
@@ -264,6 +226,8 @@ class MedicineStockViewModel: ObservableObject {
                 details: "Initial stock: \(stock) in Aisle \(aisle)"
             )
             try await medicineService.addHistoryEntry(entry)
+            
+            print("✅ Medicine added successfully")
             
         } catch {
             errorMessage = error.localizedDescription
@@ -280,6 +244,11 @@ class MedicineStockViewModel: ObservableObject {
                 medicineId: medicineId,
                 newStock: newStock
             )
+            
+            // Update local array immediately
+            if let index = allMedicines.firstIndex(where: { $0.id == medicineId }) {
+                allMedicines[index].stock = newStock
+            }
             
             let action = change > 0 ?
                 "Added \(change) to \(medicine.name)" :
@@ -304,6 +273,11 @@ class MedicineStockViewModel: ObservableObject {
         do {
             try await medicineService.updateMedicine(medicine)
             
+            // Update local array immediately
+            if let index = allMedicines.firstIndex(where: { $0.id == medicine.id }) {
+                allMedicines[index] = medicine
+            }
+            
             let entry = HistoryEntry(
                 medicineId: medicine.id!,
                 user: user,
@@ -320,6 +294,9 @@ class MedicineStockViewModel: ObservableObject {
     func deleteMedicine(id: String, name: String, user: String) async {
         do {
             try await medicineService.deleteMedicine(id: id)
+            
+            // Remove from local array immediately
+            allMedicines.removeAll { $0.id == id }
             
             let entry = HistoryEntry(
                 medicineId: id,
@@ -354,7 +331,6 @@ class MedicineStockViewModel: ObservableObject {
         
         appState = .initializing
         hasInitialized = false
-//        displayLimit = 20
         errorMessage = nil
         
         print("🧹 Cleanup complete")
@@ -362,6 +338,6 @@ class MedicineStockViewModel: ObservableObject {
     
     deinit {
         medicineService.stopAllListeners()
-        print("🧹 deiniit")
+        print("🧹 deinit")
     }
 }

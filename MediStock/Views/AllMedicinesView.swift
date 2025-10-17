@@ -159,12 +159,12 @@ struct AllMedicinesView: View {
                 .listRowBackground(Color.clear)
             }
             
-            if !viewModel.hasMoreMedicines && viewModel.allMedicines.count > 20 && searchText.isEmpty {
+            if !viewModel.hasMoreMedicines && !viewModel.allMedicines.isEmpty && searchText.isEmpty {
                 HStack {
                     Spacer()
                     Image(systemName: "checkmark.circle")
                         .foregroundColor(.green)
-                    Text("All medicines loaded")
+                    Text("All medicines loaded (\(viewModel.allMedicines.count) total)")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Spacer()
@@ -186,8 +186,8 @@ struct AllMedicinesView: View {
                 Text("• More available")
                     .font(.caption)
                     .foregroundColor(.primaryAccent)
-            } else if !viewModel.hasMoreMedicines && searchText.isEmpty && viewModel.allMedicines.count > 20 {
-                Text("• All loaded (\(viewModel.allMedicines.count) total)")
+            } else if !viewModel.hasMoreMedicines && searchText.isEmpty && !viewModel.allMedicines.isEmpty {
+                Text("• All loaded")
                     .font(.caption)
                     .foregroundColor(.green)
             }

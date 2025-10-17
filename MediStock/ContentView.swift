@@ -1,58 +1,36 @@
+
 import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var medicineViewModel: MedicineStockViewModel
     
-    @State private var showMainApp = false
-    
-    private var isAppReady: Bool {
-        medicineViewModel.appState == .ready
+    private var showMainApp: Bool {
+        authViewModel.isAuthenticated && medicineViewModel.appState == .ready
     }
 
     var body: some View {
         Group {
             if !authViewModel.isAuthenticated {
                 LoginView()
+            } else if showMainApp {
+                MainTabView()
             } else {
-                ZStack {
-                    if showMainApp || isAppReady {
-                        MainTabView()
-                            .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                    }
-                    
-                    if !isAppReady {
-                        LaunchScreenView()
-                            .transition(.opacity)
-                    }
-                }
-                .animation(.easeInOut(duration: 0.5), value: medicineViewModel.appState)
-                .onChange(of: medicineViewModel.appState) { _, newState in
-                    if newState == .ready {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            withAnimation(.easeInOut(duration: 0.4)) {
-                                showMainApp = true
-                            }
-                        }
-                    }
-                }
-                .task {
-                    if medicineViewModel.appState == .initializing {
-                        await medicineViewModel.initializeApp()
-                    }
-                }
+                // Loading state - show simple spinner while data loads
+                LaunchScreenView()
             }
         }
         .onChange(of: authViewModel.isAuthenticated) { oldValue, isAuthenticated in
             if isAuthenticated && !oldValue {
+                // User just logged in - initialize app
                 Task {
                     await medicineViewModel.initializeApp()
                 }
             } else if !isAuthenticated && oldValue {
+                // User logged out - cleanup
                 medicineViewModel.stopMedicinesListener()
                 medicineViewModel.stopHistoryListener()
                 medicineViewModel.cleanup()
-                showMainApp = false
             }
         }
     }

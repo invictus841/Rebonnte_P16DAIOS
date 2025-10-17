@@ -27,6 +27,16 @@ struct AisleListView: View {
                                         .font(.headline)
                                     
                                     Spacer()
+                                    
+                                    // Show count badge
+                                    Text("\(viewModel.medicinesForAisle(aisle).count)")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.primaryAccent)
+                                        .clipShape(Capsule())
                                 }
                                 .padding(.vertical, 8)
                             }
