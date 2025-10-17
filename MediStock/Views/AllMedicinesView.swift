@@ -142,6 +142,7 @@ struct AllMedicinesView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                 }
+                .listRowSeparator(.hidden)  // 🆕 Hides the divider
                 .listRowBackground(Color.clear)
             }
             
@@ -156,6 +157,7 @@ struct AllMedicinesView: View {
                     Spacer()
                 }
                 .padding()
+                .listRowSeparator(.hidden)  // 🆕 Hides the divider
                 .listRowBackground(Color.clear)
             }
             
@@ -170,6 +172,7 @@ struct AllMedicinesView: View {
                     Spacer()
                 }
                 .padding()
+                .listRowSeparator(.hidden)  // 🆕 Hides the divider
                 .listRowBackground(Color.clear)
             }
         }

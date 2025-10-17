@@ -36,28 +36,16 @@ class MockMedicineService: MedicineServiceProtocol {
     
     private func setupTestData() {
         medicines = [
-            Medicine(id: "1", name: "Aspirin", stock: 25, aisle: "Aisle 1"),
-            Medicine(id: "2", name: "Paracetamol", stock: 10, aisle: "Aisle 1"),
-            Medicine(id: "3", name: "Ibuprofen", stock: 0, aisle: "Aisle 2"),
-            Medicine(id: "4", name: "Amoxicillin", stock: 5, aisle: "Aisle 2"),
-            Medicine(id: "5", name: "Vitamin C", stock: 100, aisle: "Aisle 3")
+            Medicine(id: "1", name: "Aspirin", stock: 25, aisle: 1),
+            Medicine(id: "2", name: "Paracetamol", stock: 10, aisle: 1),
+            Medicine(id: "3", name: "Ibuprofen", stock: 0, aisle: 2),
+            Medicine(id: "4", name: "Amoxicillin", stock: 5, aisle: 2),
+            Medicine(id: "5", name: "Vitamin C", stock: 100, aisle: 3)
         ]
     }
     
-    // Load all medicines
-    func loadAllMedicines() async throws -> [Medicine] {
-        if shouldThrowError {
-            throw MedicineServiceError.notAuthenticated
-        }
-        
-        if loadDelay > 0 {
-            try? await Task.sleep(nanoseconds: loadDelay)
-        }
-        
-        return medicines
-    }
+    // MARK: - Load Methods (kept for compatibility but less used now)
     
-    // Load medicines with pagination
     func loadMedicines(limit: Int, startAfter: Any?, sortBy: MedicineSortField, order: MedicineSortOrder) async throws -> [Medicine] {
         loadMedicinesCallCount += 1
         
@@ -83,16 +71,15 @@ class MockMedicineService: MedicineServiceProtocol {
         return Array(sorted[startIndex..<endIndex])
     }
     
-    // Load medicines for specific aisle
     func loadMedicines(forAisle aisle: String, limit: Int, sortBy: MedicineSortField) async throws -> [Medicine] {
         if shouldThrowError {
             throw MedicineServiceError.notAuthenticated
         }
         
-        return medicines.filter { $0.aisle == aisle }.prefix(limit).map { $0 }
+        let aisleNumber = Int(aisle.replacingOccurrences(of: "Aisle ", with: "")) ?? 0
+        return medicines.filter { $0.aisle == aisleNumber }.prefix(limit).map { $0 }
     }
     
-    // Search medicines
     func searchMedicines(query: String, limit: Int, sortBy: MedicineSortField) async throws -> [Medicine] {
         if shouldThrowError {
             throw MedicineServiceError.notAuthenticated
@@ -109,59 +96,40 @@ class MockMedicineService: MedicineServiceProtocol {
             case .stock:
                 return med1.stock < med2.stock
             case .aisle:
-                let num1 = Int(med1.aisle.replacingOccurrences(of: "Aisle ", with: "")) ?? 0
-                let num2 = Int(med2.aisle.replacingOccurrences(of: "Aisle ", with: "")) ?? 0
-                return num1 < num2
+                return med1.aisle < med2.aisle
             }
         }
         
         return Array(sorted.prefix(limit))
     }
     
-    // Get medicine count
-    func getMedicineCount(forAisle aisle: String?) async throws -> Int {
-        if shouldThrowError {
-            throw MedicineServiceError.notAuthenticated
-        }
-        
-        if let aisle = aisle {
-            return medicines.filter { $0.aisle == aisle }.count
-        }
-        return medicines.count
-    }
+    // MARK: - Real-time Listeners (PRIMARY for new approach)
     
-    // Start medicines listener
     func startMedicinesListener(completion: @escaping ([Medicine]) -> Void) {
         medicinesListener = completion
+        // Immediately send current medicines
         completion(medicines)
+        print("🧪 Mock listener started with \(medicines.count) medicines")
     }
     
-    // Start medicines listener for aisle
-    func startMedicinesListener(forAisle aisle: String, completion: @escaping ([Medicine]) -> Void) {
-        medicinesListener = completion
-        let filtered = medicines.filter { $0.aisle == aisle }
-        completion(filtered)
-    }
-    
-    // Stop medicines listener
     func stopMedicinesListener() {
         medicinesListener = nil
+        print("🧪 Mock listener stopped")
     }
     
-    // Start history listener
     func startHistoryListener(for medicineId: String, completion: @escaping ([HistoryEntry]) -> Void) {
         historyListener = completion
         let filtered = historyEntries.filter { $0.medicineId == medicineId }
         completion(filtered)
     }
     
-    // Stop history listener
     func stopHistoryListener() {
         historyListener = nil
     }
     
-    // Add medicine
-    func addMedicine(_ medicine: Medicine) async throws {
+    // MARK: - CRUD Operations
+    
+    func addMedicine(_ medicine: Medicine) async throws -> Medicine {  // 🆕 Returns Medicine
         addMedicineCallCount += 1
         
         if shouldThrowError {
@@ -172,11 +140,14 @@ class MockMedicineService: MedicineServiceProtocol {
         newMedicine.id = UUID().uuidString
         medicines.append(newMedicine)
         
-        // Notify listener
+        // Notify listener if active
         medicinesListener?(medicines)
+        
+        print("🧪 Mock: Added medicine - total now: \(medicines.count)")
+        
+        return newMedicine  // 🆕 Return the created medicine
     }
     
-    // Update medicine
     func updateMedicine(_ medicine: Medicine) async throws {
         updateMedicineCallCount += 1
         
@@ -191,10 +162,10 @@ class MockMedicineService: MedicineServiceProtocol {
         if let index = medicines.firstIndex(where: { $0.id == id }) {
             medicines[index] = medicine
             medicinesListener?(medicines)
+            print("🧪 Mock: Updated medicine")
         }
     }
     
-    // Delete medicine
     func deleteMedicine(id: String) async throws {
         deleteMedicineCallCount += 1
         
@@ -204,9 +175,9 @@ class MockMedicineService: MedicineServiceProtocol {
         
         medicines.removeAll { $0.id == id }
         medicinesListener?(medicines)
+        print("🧪 Mock: Deleted medicine - total now: \(medicines.count)")
     }
     
-    // Update stock
     func updateStock(medicineId: String, newStock: Int) async throws {
         updateStockCallCount += 1
         
@@ -217,10 +188,10 @@ class MockMedicineService: MedicineServiceProtocol {
         if let index = medicines.firstIndex(where: { $0.id == medicineId }) {
             medicines[index].stock = newStock
             medicinesListener?(medicines)
+            print("🧪 Mock: Updated stock to \(newStock)")
         }
     }
     
-    // Add history entry
     func addHistoryEntry(_ entry: HistoryEntry) async throws {
         addHistoryCallCount += 1
         
@@ -232,18 +203,21 @@ class MockMedicineService: MedicineServiceProtocol {
         newEntry.id = UUID().uuidString
         historyEntries.append(newEntry)
         
-        if entry.medicineId == historyListener.map({ _ in entry.medicineId }) ?? "" {
-            historyListener?(historyEntries.filter { $0.medicineId == entry.medicineId })
-        }
+        // Notify history listener if watching this medicine
+        let filtered = historyEntries.filter { $0.medicineId == entry.medicineId }
+        historyListener?(filtered)
     }
     
-    // Stop all listeners
+    // MARK: - Cleanup
+    
     func stopAllListeners() {
         medicinesListener = nil
         historyListener = nil
+        print("🧪 Mock: All listeners stopped")
     }
     
-    // Test helper methods
+    // MARK: - Test Helper Methods
+    
     func reset() {
         setupTestData()
         historyEntries = []
@@ -255,6 +229,8 @@ class MockMedicineService: MedicineServiceProtocol {
         deleteMedicineCallCount = 0
         updateStockCallCount = 0
         addHistoryCallCount = 0
+        medicinesListener = nil
+        historyListener = nil
     }
     
     func addTestHistory(for medicineId: String, count: Int) {
@@ -269,6 +245,26 @@ class MockMedicineService: MedicineServiceProtocol {
                     timestamp: Date().addingTimeInterval(TimeInterval(-i * 3600))
                 )
             )
+        }
+    }
+    
+    // Helper to simulate another user adding a medicine
+    func simulateRemoteAdd(_ medicine: Medicine) {
+        var newMedicine = medicine
+        newMedicine.id = UUID().uuidString
+        medicines.append(newMedicine)
+        
+        // Trigger listener as if Firebase sent an update
+        medicinesListener?(medicines)
+        print("🧪 Mock: Simulated remote add - \(newMedicine.name)")
+    }
+    
+    // Helper to simulate another user updating stock
+    func simulateRemoteStockUpdate(medicineId: String, newStock: Int) {
+        if let index = medicines.firstIndex(where: { $0.id == medicineId }) {
+            medicines[index].stock = newStock
+            medicinesListener?(medicines)
+            print("🧪 Mock: Simulated remote stock update")
         }
     }
 }

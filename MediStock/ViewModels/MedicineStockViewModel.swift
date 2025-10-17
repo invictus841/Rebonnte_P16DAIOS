@@ -13,75 +13,136 @@ class MedicineStockViewModel: ObservableObject {
     @Published var appState: LoadingState = .initializing
     @Published var loadingProgress: Double = 0
     
-    @Published var allMedicines: [Medicine] = []
+    // 🆕 This is the ONLY source of truth - NEVER modified except by listener
+    @Published private var fullMedicinesList: [Medicine] = []
+    
+    // 🆕 Search query
+    @Published var searchQuery: String = ""
+    
+    // How many to display in UI
+    @Published var displayLimit: Int = 5
+    
     @Published var currentHistory: [HistoryEntry] = []
     @Published var errorMessage: String?
     
     @Published var isLoadingMore = false
-    @Published var hasMoreMedicines = true
-    private var lastLoadedValue: Any?
     
     @Published var currentSortField: MedicineSortField = .name
     @Published var currentSortOrder: MedicineSortOrder = .ascending
     
-    private let pageSize = 2
-    
     private let medicineService: MedicineServiceProtocol
     private var hasInitialized = false
     
+    // 🆕 COMPUTED: Apply search filter + display limit
+    var allMedicines: [Medicine] {
+        let filtered: [Medicine]
+        
+        if searchQuery.isEmpty {
+            filtered = fullMedicinesList
+        } else {
+            filtered = fullMedicinesList.filter {
+                $0.name.lowercased().contains(searchQuery.lowercased())
+            }
+        }
+        
+        return Array(filtered.prefix(displayLimit))
+    }
+    
+    // 🆕 COMPUTED: Check if we can show more (based on filtered results)
+    var hasMoreMedicines: Bool {
+        let filtered: [Medicine]
+        
+        if searchQuery.isEmpty {
+            filtered = fullMedicinesList
+        } else {
+            filtered = fullMedicinesList.filter {
+                $0.name.lowercased().contains(searchQuery.lowercased())
+            }
+        }
+        
+        return filtered.count > displayLimit
+    }
+    
+    // 🆕 ALWAYS use the full list for aisles (not filtered!)
     var aisles: [Int] {
-        let uniqueAisles = Set(allMedicines.map { $0.aisle })
+        let uniqueAisles = Set(fullMedicinesList.map { $0.aisle })
         return Array(uniqueAisles).sorted()
     }
     
+    // 🆕 For aisle view - always show all medicines in that aisle (not filtered by search)
     func medicinesForAisle(_ aisle: Int) -> [Medicine] {
-        allMedicines.filter { $0.aisle == aisle }
+        fullMedicinesList.filter { $0.aisle == aisle }
     }
     
+    // 🆕 Search in full list
     func medicine(withId id: String) -> Medicine? {
-        allMedicines.first { $0.id == id }
+        fullMedicinesList.first { $0.id == id }
     }
     
     init(medicineService: MedicineServiceProtocol = FirebaseMedicineService()) {
         self.medicineService = medicineService
     }
     
-    // Simple initialization without launch screen
+    // MARK: - Initialization
+    
     func initializeApp() async {
         guard !hasInitialized else { return }
         hasInitialized = true
         
         appState = .loading
+        loadingProgress = 0.5
         
-        // Load initial batch of medicines
-        await loadInitialMedicines()
+        startRealtimeListener()
         
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        
+        loadingProgress = 1.0
         appState = .ready
+        
+        print("✅ App initialized with real-time listener")
     }
     
-    // Load first page of medicines
-    private func loadInitialMedicines() async {
-        do {
-            let medicines = try await medicineService.loadMedicines(
-                limit: pageSize,
-                startAfter: nil,
-                sortBy: currentSortField,
-                order: currentSortOrder
-            )
-            
-            allMedicines = medicines
-            lastLoadedValue = getLastValue(from: medicines)
-            hasMoreMedicines = medicines.count == pageSize
-            
-            print("✅ Loaded \(medicines.count) medicines (initial page)")
-            
-        } catch {
-            print("❌ Error loading medicines: \(error)")
-            errorMessage = error.localizedDescription
+    // MARK: - Real-time Listener
+    
+    private func startRealtimeListener() {
+        medicineService.startMedicinesListener { [weak self] medicines in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                
+                // 🆕 ONLY place where fullMedicinesList is updated!
+                self.fullMedicinesList = self.sortMedicines(medicines)
+                
+                print("🔄 Real-time update: \(medicines.count) total medicines")
+            }
         }
     }
     
-    // Helper to sort medicines
+    // MARK: - Virtual Pagination
+    
+    func loadMoreMedicines() async {
+        guard !isLoadingMore else {
+            print("⚠️ Already loading")
+            return
+        }
+        
+        guard hasMoreMedicines else {
+            print("⚠️ No more medicines to show")
+            return
+        }
+        
+        isLoadingMore = true
+        
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        
+        displayLimit += 5
+        
+        isLoadingMore = false
+        
+        print("📄 Now showing \(allMedicines.count) medicines")
+    }
+    
+    // MARK: - Sorting
+    
     private func sortMedicines(_ medicines: [Medicine]) -> [Medicine] {
         medicines.sorted { med1, med2 in
             switch currentSortField {
@@ -95,103 +156,34 @@ class MedicineStockViewModel: ObservableObject {
         }
     }
     
-    func loadMoreMedicines() async {
-        guard !isLoadingMore else {
-            print("⚠️ Already loading, skipping")
-            return
-        }
-        
-        guard hasMoreMedicines else {
-            print("⚠️ No more medicines to load")
-            return
-        }
-        
-        isLoadingMore = true
-        
-        do {
-            let newMedicines = try await medicineService.loadMedicines(
-                limit: pageSize,
-                startAfter: lastLoadedValue,
-                sortBy: currentSortField,
-                order: currentSortOrder
-            )
-            
-            if newMedicines.isEmpty {
-                hasMoreMedicines = false
-                print("✅ Loaded 0 medicines - all loaded! (total: \(allMedicines.count))")
-            } else {
-                allMedicines.append(contentsOf: newMedicines)
-                lastLoadedValue = getLastValue(from: newMedicines)
-
-                if newMedicines.count < pageSize {
-                    hasMoreMedicines = false
-                    print("✅ Loaded \(newMedicines.count) medicines (final page, total: \(allMedicines.count))")
-                } else {
-                    hasMoreMedicines = true
-                    print("✅ Loaded \(newMedicines.count) medicines (total: \(allMedicines.count), more available)")
-                }
-            }
-            
-        } catch {
-            print("❌ Error loading more medicines: \(error)")
-            errorMessage = error.localizedDescription
-        }
-        
-        isLoadingMore = false
-    }
-    
-    private func getLastValue(from medicines: [Medicine]) -> Any? {
-        guard let last = medicines.last else { return nil }
-        
-        switch currentSortField {
-        case .name:
-            return last.name
-        case .stock:
-            return last.stock
-        case .aisle:
-            return last.aisle
-        }
-    }
-    
     func changeSortOrder(to field: MedicineSortField, order: MedicineSortOrder = .ascending) async {
         currentSortField = field
         currentSortOrder = order
         
-        // Reload with new sort order
-        lastLoadedValue = nil
-        hasMoreMedicines = true
-        
-        await loadInitialMedicines()
+        // Re-sort the FULL list
+        fullMedicinesList = sortMedicines(fullMedicinesList)
         
         print("✅ Sorted by \(field.rawValue)")
     }
     
+    // MARK: - Search
+    
+    // 🆕 MUCH SIMPLER - just update the search query!
     func searchMedicines(query: String) async {
-        guard !query.isEmpty else {
-            // Return to normal view - reload initial medicines
-            lastLoadedValue = nil
-            hasMoreMedicines = true
-            await loadInitialMedicines()
-            return
-        }
+        searchQuery = query
+        displayLimit = 5
         
-        do {
-            let medicines = try await medicineService.searchMedicines(
-                query: query,
-                limit: 50, // More results for search
-                sortBy: currentSortField
-            )
-            
-            allMedicines = medicines
-            hasMoreMedicines = false
-            
-            print("🔍 Found \(medicines.count) medicines matching '\(query)'")
-            
-        } catch {
-            print("❌ Search error: \(error)")
-            errorMessage = error.localizedDescription
+        if query.isEmpty {
+            print("🔍 Search cleared - showing all")
+        } else {
+            let count = fullMedicinesList.filter {
+                $0.name.lowercased().contains(query.lowercased())
+            }.count
+            print("🔍 Found \(count) medicines matching '\(query)'")
         }
     }
+    
+    // MARK: - History
     
     func loadHistory(for medicineId: String) {
         medicineService.startHistoryListener(for: medicineId) { [weak self] entries in
@@ -214,18 +206,24 @@ class MedicineStockViewModel: ObservableObject {
         print("🛑 History listener stopped - cleared \(count) entries")
     }
     
+    // MARK: - CRUD Operations
+    
     func addMedicine(name: String, stock: Int, aisle: Int, user: String) async {
         do {
             let medicine = Medicine(name: name, stock: stock, aisle: aisle)
-            try await medicineService.addMedicine(medicine)
+            let savedMedicine = try await medicineService.addMedicine(medicine)
             
             let entry = HistoryEntry(
-                medicineId: medicine.id ?? "",
+                medicineId: savedMedicine.id ?? "",
                 user: user,
                 action: "Added \(name)",
                 details: "Initial stock: \(stock) in Aisle \(aisle)"
             )
             try await medicineService.addHistoryEntry(entry)
+            
+            // Optimistic update - add to FULL list
+            fullMedicinesList.append(savedMedicine)
+            fullMedicinesList = sortMedicines(fullMedicinesList)
             
             print("✅ Medicine added successfully")
             
@@ -245,9 +243,9 @@ class MedicineStockViewModel: ObservableObject {
                 newStock: newStock
             )
             
-            // Update local array immediately
-            if let index = allMedicines.firstIndex(where: { $0.id == medicineId }) {
-                allMedicines[index].stock = newStock
+            // Optimistic update in FULL list
+            if let index = fullMedicinesList.firstIndex(where: { $0.id == medicineId }) {
+                fullMedicinesList[index].stock = newStock
             }
             
             let action = change > 0 ?
@@ -273,9 +271,10 @@ class MedicineStockViewModel: ObservableObject {
         do {
             try await medicineService.updateMedicine(medicine)
             
-            // Update local array immediately
-            if let index = allMedicines.firstIndex(where: { $0.id == medicine.id }) {
-                allMedicines[index] = medicine
+            // Optimistic update in FULL list
+            if let index = fullMedicinesList.firstIndex(where: { $0.id == medicine.id }) {
+                fullMedicinesList[index] = medicine
+                fullMedicinesList = sortMedicines(fullMedicinesList)
             }
             
             let entry = HistoryEntry(
@@ -295,8 +294,8 @@ class MedicineStockViewModel: ObservableObject {
         do {
             try await medicineService.deleteMedicine(id: id)
             
-            // Remove from local array immediately
-            allMedicines.removeAll { $0.id == id }
+            // Optimistic update in FULL list
+            fullMedicinesList.removeAll { $0.id == id }
             
             let entry = HistoryEntry(
                 medicineId: id,
@@ -311,6 +310,8 @@ class MedicineStockViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Cleanup
+    
     func stopMedicinesListener() {
         medicineService.stopMedicinesListener()
     }
@@ -322,12 +323,10 @@ class MedicineStockViewModel: ObservableObject {
         medicineService.stopHistoryListener()
         medicineService.stopAllListeners()
         
-        allMedicines = []
+        fullMedicinesList = []
         currentHistory = []
-        
-        lastLoadedValue = nil
-        hasMoreMedicines = true
-        isLoadingMore = false
+        searchQuery = ""
+        displayLimit = 5
         
         appState = .initializing
         hasInitialized = false
@@ -338,6 +337,6 @@ class MedicineStockViewModel: ObservableObject {
     
     deinit {
         medicineService.stopAllListeners()
-        print("🧹 deinit")
+        print("🧹 ViewModel deinitialized")
     }
 }

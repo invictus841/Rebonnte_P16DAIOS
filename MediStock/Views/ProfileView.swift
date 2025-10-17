@@ -61,64 +61,7 @@ struct ProfileView: View {
                     }
                     .padding(.horizontal)
                     
-                    // Inventory Statistics Card
-                    GroupBox("Inventory Statistics") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Label("Total Medicines", systemImage: "pills")
-                                    .fontWeight(.medium)
-                                Spacer()
-                                Text("\(medicineViewModel.allMedicines.count)")
-                                    .font(.headline)
-                                    .foregroundColor(.primaryAccent)
-                            }
-                            
-                            Divider()
-                            
-                            HStack {
-                                Label("Total Aisles", systemImage: "rectangle.stack")
-                                    .fontWeight(.medium)
-                                Spacer()
-                                Text("\(medicineViewModel.aisles.count)")
-                                    .font(.headline)
-                                    .foregroundColor(.primaryAccent)
-                            }
-                            
-                            // Low stock alert
-                            let lowStockCount = medicineViewModel.allMedicines.filter { $0.stock > 0 && $0.stock < 10 }.count
-                            if lowStockCount > 0 {
-                                Divider()
-                                
-                                HStack {
-                                    Label("Low Stock Alert", systemImage: "exclamationmark.triangle.fill")
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.orange)
-                                    Spacer()
-                                    Text("\(lowStockCount)")
-                                        .font(.headline)
-                                        .foregroundColor(.orange)
-                                }
-                            }
-                            
-                            // Out of stock alert
-                            let outOfStockCount = medicineViewModel.allMedicines.filter { $0.stock == 0 }.count
-                            if outOfStockCount > 0 {
-                                Divider()
-                                
-                                HStack {
-                                    Label("Out of Stock", systemImage: "exclamationmark.circle.fill")
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.red)
-                                    Spacer()
-                                    Text("\(outOfStockCount)")
-                                        .font(.headline)
-                                        .foregroundColor(.red)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
-                    .padding(.horizontal)
+                    // 🗑️ Statistics section REMOVED - not in requirements
                     
                     // Sign Out Section
                     VStack(spacing: 16) {

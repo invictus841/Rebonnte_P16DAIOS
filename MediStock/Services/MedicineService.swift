@@ -23,38 +23,23 @@ enum MedicineSortOrder {
 }
 
 protocol MedicineServiceProtocol {
-    // Initial load
-//    func loadAllMedicines() async throws -> [Medicine]
-    
-    // Paginated loading with sorting
     func loadMedicines(limit: Int, startAfter: Any?, sortBy: MedicineSortField, order: MedicineSortOrder) async throws -> [Medicine]
-    
-    //Filtered queries with sorting
     func loadMedicines(forAisle aisle: String, limit: Int, sortBy: MedicineSortField) async throws -> [Medicine]
     func searchMedicines(query: String, limit: Int, sortBy: MedicineSortField) async throws -> [Medicine]
-//    func getMedicineCount(forAisle aisle: String?) async throws -> Int
     
-    // Real-time listener
     func startMedicinesListener(completion: @escaping ([Medicine]) -> Void)
     func stopMedicinesListener()
     
-    //Filtered listener for specific aisle
-//    func startMedicinesListener(forAisle aisle: String, completion: @escaping ([Medicine]) -> Void)
-    
-    // History
     func startHistoryListener(for medicineId: String, completion: @escaping ([HistoryEntry]) -> Void)
     func stopHistoryListener()
     
-    // CRUD
-    func addMedicine(_ medicine: Medicine) async throws
+    func addMedicine(_ medicine: Medicine) async throws -> Medicine
     func updateMedicine(_ medicine: Medicine) async throws
     func deleteMedicine(id: String) async throws
     func updateStock(medicineId: String, newStock: Int) async throws
     
-    // History logging
     func addHistoryEntry(_ entry: HistoryEntry) async throws
     
-    // Cleanup
     func stopAllListeners()
 }
 
@@ -248,17 +233,19 @@ class FirebaseMedicineService: MedicineServiceProtocol {
         historyListener = nil
     }
     
-    func addMedicine(_ medicine: Medicine) async throws {
-        guard Auth.auth().currentUser != nil else {
-            throw MedicineServiceError.notAuthenticated
+    func addMedicine(_ medicine: Medicine) async throws -> Medicine {
+            guard Auth.auth().currentUser != nil else {
+                throw MedicineServiceError.notAuthenticated
+            }
+            
+            let docRef = db.collection("medicines").document()
+            var newMedicine = medicine
+            newMedicine.id = docRef.documentID
+            
+            try docRef.setData(from: newMedicine)
+            
+            return newMedicine
         }
-        
-        let docRef = db.collection("medicines").document()
-        var newMedicine = medicine
-        newMedicine.id = docRef.documentID
-        
-        try docRef.setData(from: newMedicine)
-    }
     
     func updateMedicine(_ medicine: Medicine) async throws {
         guard let id = medicine.id else {
