@@ -167,18 +167,27 @@ class MedicineStockViewModel: ObservableObject {
     
     // MARK: - Search
     
-    // 🆕 MUCH SIMPLER - just update the search query!
     func searchMedicines(query: String) async {
         searchQuery = query
         displayLimit = 5
         
         if query.isEmpty {
+            // Keep using the real-time listener data
             print("🔍 Search cleared - showing all")
         } else {
-            let count = fullMedicinesList.filter {
-                $0.name.lowercased().contains(query.lowercased())
-            }.count
-            print("🔍 Found \(count) medicines matching '\(query)'")
+            // NEW: Use Firebase search instead of local filtering
+            do {
+                let results = try await medicineService.searchMedicines(
+                    query: query,
+                    limit: 20,
+                    sortBy: currentSortField
+                )
+                // Temporarily override the list with search results
+                fullMedicinesList = results
+                print("🔍 Found \(results.count) medicines via Firebase")
+            } catch {
+                print("❌ Search error: \(error)")
+            }
         }
     }
     
