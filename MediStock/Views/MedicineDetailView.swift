@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct MedicineDetailView: View {
-    let medicineId: String  // Store ID instead of whole medicine object
+    let medicineId: String
     
     @State private var stockAdjustment = 1
     @State private var isAddMode = true
@@ -9,8 +9,10 @@ struct MedicineDetailView: View {
     @State private var editedAisleNumber: Int = 1
     @State private var showSuccessMessage = false
     @State private var showStockPicker = false
-    @State private var hasLoadedHistory = false
     @State private var hasInitialized = false
+    
+    // 🆕 NEW: This view has its own ViewModel for history
+    @StateObject private var detailViewModel = MedicineDetailViewModel()
     
     @EnvironmentObject var viewModel: MedicineStockViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -53,18 +55,15 @@ struct MedicineDetailView: View {
                         editedName = medicine.name
                         editedAisleNumber = medicine.aisle
                         
-                        // Load history
-                        if !hasLoadedHistory {
-                            viewModel.loadHistory(for: medicineId)
-                            hasLoadedHistory = true
-                        }
+                        // 🆕 CHANGED: Load history using detail ViewModel
+                        detailViewModel.loadHistory(for: medicineId)
                     }
                 }
                 .onDisappear {
-                    viewModel.currentHistory = []
-                    viewModel.stopHistoryListener()
-                    hasLoadedHistory = false
-                    print("🧹 Detail view dismissed - cleaned history")
+                    // 🆕 CHANGED: Cleanup the detail ViewModel
+                    detailViewModel.cleanup()
+                    hasInitialized = false
+                    print("🧹 Detail view dismissed")
                 }
             } else {
                 // Medicine not found or deleted
@@ -228,12 +227,13 @@ struct MedicineDetailView: View {
     }
     
     // MARK: - History Card
+    // 🆕 CHANGED: Now uses detailViewModel.history instead of viewModel.currentHistory
     private var historyCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Recent History")
                 .font(.headline)
             
-            if viewModel.currentHistory.isEmpty {
+            if detailViewModel.history.isEmpty {
                 Text("No history yet")
                     .foregroundColor(.secondary)
                     .padding()
@@ -241,7 +241,7 @@ struct MedicineDetailView: View {
                     .background(Color(.systemGray5))
                     .cornerRadius(8)
             } else {
-                ForEach(viewModel.currentHistory.prefix(10), id: \.id) { entry in
+                ForEach(detailViewModel.history.prefix(10), id: \.id) { entry in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Text(entry.action)

@@ -22,7 +22,6 @@ class MedicineStockViewModel: ObservableObject {
     // How many to display in UI
     @Published var displayLimit: Int = 5
     
-    @Published var currentHistory: [HistoryEntry] = []
     @Published var errorMessage: String?
     
     @Published var isLoadingMore = false
@@ -183,29 +182,6 @@ class MedicineStockViewModel: ObservableObject {
         }
     }
     
-    // MARK: - History
-    
-    func loadHistory(for medicineId: String) {
-        medicineService.startHistoryListener(for: medicineId) { [weak self] entries in
-            Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                
-                let newEntries = Array(entries.prefix(20))
-                if newEntries.count != self.currentHistory.count {
-                    self.currentHistory = newEntries
-                    print("📜 History updated: \(newEntries.count) entries")
-                }
-            }
-        }
-    }
-    
-    func stopHistoryListener() {
-        let count = currentHistory.count
-        medicineService.stopHistoryListener()
-        currentHistory.removeAll()
-        print("🛑 History listener stopped - cleared \(count) entries")
-    }
-    
     // MARK: - CRUD Operations
     
     func addMedicine(name: String, stock: Int, aisle: Int, user: String) async {
@@ -320,11 +296,9 @@ class MedicineStockViewModel: ObservableObject {
         print("🧹 Starting cleanup")
         
         medicineService.stopMedicinesListener()
-        medicineService.stopHistoryListener()
         medicineService.stopAllListeners()
         
         fullMedicinesList = []
-        currentHistory = []
         searchQuery = ""
         displayLimit = 5
         

@@ -32,6 +32,7 @@
 		AC0095CF2E9CF382003F4215 /* AuthViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0095CE2E9CF382003F4215 /* AuthViewModelTests.swift */; };
 		AC0095D12E9CF38B003F4215 /* MedicineStockViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0095D02E9CF38B003F4215 /* MedicineStockViewModelTests.swift */; };
 		AC0095D32E9CF396003F4215 /* IntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0095D22E9CF396003F4215 /* IntegrationTests.swift */; };
+		AC0095D52EA2D82E003F4215 /* MedicineDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0095D42EA2D82E003F4215 /* MedicineDetailViewModel.swift */; };
 		AC1390352E8420DA00F4E421 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = AC1390342E8420DA00F4E421 /* GoogleService-Info.plist */; };
 		AC13903B2E858A9600F4E421 /* UIComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC13903A2E858A9600F4E421 /* UIComponents.swift */; };
 		AC1390412E85971100F4E421 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC1390402E85971100F4E421 /* AuthService.swift */; };
@@ -74,6 +75,7 @@
 		AC0095CE2E9CF382003F4215 /* AuthViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModelTests.swift; sourceTree = "<group>"; };
 		AC0095D02E9CF38B003F4215 /* MedicineStockViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicineStockViewModelTests.swift; sourceTree = "<group>"; };
 		AC0095D22E9CF396003F4215 /* IntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntegrationTests.swift; sourceTree = "<group>"; };
+		AC0095D42EA2D82E003F4215 /* MedicineDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicineDetailViewModel.swift; sourceTree = "<group>"; };
 		AC1390342E8420DA00F4E421 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		AC13903A2E858A9600F4E421 /* UIComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIComponents.swift; sourceTree = "<group>"; };
 		AC1390402E85971100F4E421 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
@@ -196,6 +198,7 @@
 			children = (
 				AC1390422E85974600F4E421 /* AuthViewModel.swift */,
 				53E0D8DD2C0609A800DE1134 /* MedicineStockViewModel.swift */,
+				AC0095D42EA2D82E003F4215 /* MedicineDetailViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -351,6 +354,7 @@
 				53E0D8E82C066F6500DE1134 /* MedicineDetailView.swift in Sources */,
 				AC1390432E85974600F4E421 /* AuthViewModel.swift in Sources */,
 				AC1390412E85971100F4E421 /* AuthService.swift in Sources */,
+				AC0095D52EA2D82E003F4215 /* MedicineDetailViewModel.swift in Sources */,
 				53E0D8EE2C06718100DE1134 /* AllMedicinesView.swift in Sources */,
 				53E0D8EC2C06717200DE1134 /* MainTabView.swift in Sources */,
 			);

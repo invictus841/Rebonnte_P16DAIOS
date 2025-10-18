@@ -1,4 +1,3 @@
-
 import SwiftUI
 
 struct ContentView: View {
@@ -28,8 +27,8 @@ struct ContentView: View {
                 }
             } else if !isAuthenticated && oldValue {
                 // User logged out - cleanup
+                // 🆕 FIXED: cleanup() already stops all listeners, no need to call stopHistoryListener()
                 medicineViewModel.stopMedicinesListener()
-                medicineViewModel.stopHistoryListener()
                 medicineViewModel.cleanup()
             }
         }
