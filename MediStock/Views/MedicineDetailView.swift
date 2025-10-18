@@ -11,14 +11,12 @@ struct MedicineDetailView: View {
     @State private var showStockPicker = false
     @State private var hasInitialized = false
     
-    // 🆕 NEW: This view has its own ViewModel for history
     @StateObject private var detailViewModel = MedicineDetailViewModel()
     
     @EnvironmentObject var viewModel: MedicineStockViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
     @Environment(\.dismiss) private var dismiss
     
-    // Always get fresh medicine data from viewModel
     private var currentMedicine: Medicine? {
         viewModel.medicine(withId: medicineId)
     }
@@ -34,13 +32,10 @@ struct MedicineDetailView: View {
             if let medicine = currentMedicine {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        // Medicine Info Card
                         medicineInfoCard
                         
-                        // Stock Management Card
                         stockManagementCard(for: medicine)
                         
-                        // History Card
                         historyCard
                     }
                     .padding()
@@ -51,32 +46,32 @@ struct MedicineDetailView: View {
                 .task {
                     if !hasInitialized {
                         hasInitialized = true
-                        // Update edited values if medicine data changed
+                        
                         editedName = medicine.name
                         editedAisleNumber = medicine.aisle
                         
-                        // 🆕 CHANGED: Load history using detail ViewModel
                         detailViewModel.loadHistory(for: medicineId)
                     }
                 }
                 .onDisappear {
-                    // 🆕 CHANGED: Cleanup the detail ViewModel
                     detailViewModel.cleanup()
                     hasInitialized = false
                     print("🧹 Detail view dismissed")
                 }
             } else {
-                // Medicine not found or deleted
                 VStack {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 60))
                         .foregroundColor(.orange)
+                        .accessibilityHidden(true)
                     Text("Medicine not found")
                         .font(.headline)
                     Text("This medicine may have been deleted")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Medicine not found. This medicine may have been deleted")
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                         dismiss()
@@ -91,8 +86,11 @@ struct MedicineDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Medicine Information")
                 .font(.headline)
+                .accessibilityAddTraits(.isHeader)
             
             CustomTextField("Name", text: $editedName)
+                .accessibilityLabel("Medicine name")
+                .accessibilityValue(editedName)
             
             HStack {
                 Text("Aisle")
@@ -105,12 +103,15 @@ struct MedicineDetailView: View {
                     }
                 }
                 .pickerStyle(MenuPickerStyle())
+                .accessibilityLabel("Select aisle number")
+                .accessibilityValue("Aisle \(editedAisleNumber)")
             }
             
             if hasChanges {
                 PrimaryButton("Save Changes") {
                     saveChanges()
                 }
+                .accessibilityHint("Double tap to save medicine information changes")
             }
         }
         .padding()
@@ -124,6 +125,7 @@ struct MedicineDetailView: View {
             HStack {
                 Text("Stock Management")
                     .font(.headline)
+                    .accessibilityAddTraits(.isHeader)
                 
                 Spacer()
                 
@@ -132,12 +134,17 @@ struct MedicineDetailView: View {
                     .fontWeight(.bold)
                     .foregroundColor(stockColor(for: medicine.stock))
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Stock Management. Current stock: \(medicine.stock) units")
+            .accessibilityAddTraits(.updatesFrequently)
             
             Picker("Mode", selection: $isAddMode) {
                 Text("Add Stock").tag(true)
                 Text("Remove Stock").tag(false)
             }
             .pickerStyle(SegmentedPickerStyle())
+            .accessibilityLabel("Stock adjustment mode")
+            .accessibilityValue(isAddMode ? "Add stock" : "Remove stock")
             
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
@@ -163,6 +170,9 @@ struct MedicineDetailView: View {
                         .cornerRadius(8)
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .accessibilityLabel("Quantity selector")
+                    .accessibilityValue("\(stockAdjustment) units")
+                    .accessibilityHint("Double tap to \(showStockPicker ? "hide" : "show") quantity picker")
                 }
                 
                 if showStockPicker {
@@ -176,12 +186,14 @@ struct MedicineDetailView: View {
                     .background(Color(.systemGray6))
                     .cornerRadius(10)
                     .transition(.opacity.combined(with: .move(edge: .top)))
+                    .accessibilityLabel("Select quantity from 1 to 99")
                 }
             }
             
             Button(action: applyStockChange) {
                 HStack {
                     Image(systemName: isAddMode ? "plus.circle" : "minus.circle")
+                        .accessibilityHidden(true)
                     Text("\(isAddMode ? "Add" : "Remove") \(stockAdjustment)")
                 }
                 .frame(maxWidth: .infinity)
@@ -190,10 +202,13 @@ struct MedicineDetailView: View {
                 .foregroundColor(.white)
                 .cornerRadius(12)
             }
+            .accessibilityLabel("\(isAddMode ? "Add" : "Remove") \(stockAdjustment) units to stock")
+            .accessibilityHint("Double tap to apply stock change")
             
             Text("Quick Actions")
                 .font(.caption)
                 .foregroundColor(.secondary)
+                .accessibilityAddTraits(.isHeader)
             
             HStack(spacing: 12) {
                 ForEach([1, 5, 10], id: \.self) { amount in
@@ -205,10 +220,13 @@ struct MedicineDetailView: View {
                                 .foregroundColor(.white)
                                 .clipShape(Circle())
                         }
+                        .accessibilityLabel("Remove \(amount) units")
+                        .accessibilityHint("Double tap to quickly remove \(amount) units from stock")
                         
                         Text("\(amount)")
                             .font(.caption)
                             .frame(minWidth: 20)
+                            .accessibilityHidden(true)
                         
                         Button(action: { quickAdjust(amount) }) {
                             Image(systemName: "plus")
@@ -217,6 +235,8 @@ struct MedicineDetailView: View {
                                 .foregroundColor(.white)
                                 .clipShape(Circle())
                         }
+                        .accessibilityLabel("Add \(amount) units")
+                        .accessibilityHint("Double tap to quickly add \(amount) units to stock")
                     }
                 }
             }
@@ -227,11 +247,12 @@ struct MedicineDetailView: View {
     }
     
     // MARK: - History Card
-    // 🆕 CHANGED: Now uses detailViewModel.history instead of viewModel.currentHistory
+    
     private var historyCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Recent History")
                 .font(.headline)
+                .accessibilityAddTraits(.isHeader)
             
             if detailViewModel.history.isEmpty {
                 Text("No history yet")
@@ -240,6 +261,7 @@ struct MedicineDetailView: View {
                     .frame(maxWidth: .infinity)
                     .background(Color(.systemGray5))
                     .cornerRadius(8)
+                    .accessibilityLabel("No history entries available for this medicine")
             } else {
                 ForEach(detailViewModel.history.prefix(10), id: \.id) { entry in
                     VStack(alignment: .leading, spacing: 4) {
@@ -268,6 +290,8 @@ struct MedicineDetailView: View {
                     .padding()
                     .background(Color(.systemGray5))
                     .cornerRadius(8)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(entry.action), by \(entry.user), \(entry.timestamp, style: .relative). \(entry.details)")
                 }
             }
         }
@@ -277,6 +301,7 @@ struct MedicineDetailView: View {
     }
     
     // MARK: - Computed Properties
+    
     private var hasChanges: Bool {
         guard let current = currentMedicine else { return false }
         return editedName != current.name ||
@@ -296,6 +321,7 @@ struct MedicineDetailView: View {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.white)
+                        .accessibilityHidden(true)
                     Text("Success!")
                         .foregroundColor(.white)
                         .fontWeight(.semibold)
@@ -309,10 +335,14 @@ struct MedicineDetailView: View {
             }
             .transition(.move(edge: .top))
             .animation(.spring(), value: showSuccessMessage)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Success! Changes saved")
+            .accessibilityAddTraits(.isStaticText)
         }
     }
     
     // MARK: - Actions
+    
     private func applyStockChange() {
         let change = isAddMode ? stockAdjustment : -stockAdjustment
         

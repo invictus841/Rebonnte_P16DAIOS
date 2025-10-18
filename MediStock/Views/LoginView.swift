@@ -15,23 +15,25 @@ struct LoginView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 24) {
-                // Header
                 VStack(spacing: 8) {
                     Image(systemName: "pills.fill")
                         .font(.system(size: 60))
                         .foregroundColor(.primaryAccent)
+                        .accessibilityHidden(true)
                     
                     Text("MediStock")
                         .font(.largeTitle)
                         .fontWeight(.bold)
+                        .accessibilityAddTraits(.isHeader)
                     
                     Text(isSignUpMode ? "Create your account" : "Welcome back")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
                 .padding(.top, 40)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(isSignUpMode ? "MediStock. Create your account" : "MediStock. Welcome back")
                 
-                // Form
                 VStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 4) {
                         CustomTextField(
@@ -68,16 +70,16 @@ struct LoginView: View {
                     }
                 }
                 
-                // Error Message
                 if let errorMessage = authViewModel.errorMessage {
                     Text(errorMessage)
                         .font(.caption)
                         .foregroundColor(.red)
                         .padding(.horizontal)
                         .multilineTextAlignment(.center)
+                        .accessibilityAddTraits(.isStaticText)
+                        .accessibilityLabel("Error: \(errorMessage)")
                 }
                 
-                // Action Buttons
                 VStack(spacing: 12) {
                     PrimaryButton(
                         isSignUpMode ? "Create Account" : "Sign In",

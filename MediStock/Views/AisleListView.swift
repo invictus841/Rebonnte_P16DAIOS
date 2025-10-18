@@ -22,13 +22,13 @@ struct AisleListView: View {
                                     Image(systemName: "rectangle.stack.fill")
                                         .foregroundColor(.primaryAccent)
                                         .frame(width: 30)
+                                        .accessibilityHidden(true)
                                     
                                     Text("Aisle \(aisle)")
                                         .font(.headline)
                                     
                                     Spacer()
                                     
-                                    // Show count badge
                                     Text("\(viewModel.medicinesForAisle(aisle).count)")
                                         .font(.caption)
                                         .fontWeight(.semibold)
@@ -37,9 +37,13 @@ struct AisleListView: View {
                                         .padding(.vertical, 4)
                                         .background(Color.primaryAccent)
                                         .clipShape(Capsule())
+                                        .accessibilityLabel("\(viewModel.medicinesForAisle(aisle).count) medicines")
                                 }
                                 .padding(.vertical, 8)
                             }
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel("Aisle \(aisle), \(viewModel.medicinesForAisle(aisle).count) medicines")
+                            .accessibilityHint("Double tap to view medicines in this aisle")
                         }
                         
                         HStack {
@@ -58,7 +62,9 @@ struct AisleListView: View {
                 Image(systemName: "plus")
                     .font(.title3)
                     .foregroundColor(.primaryAccent)
-            })
+            }
+            .accessibilityLabel("Add new medicine")
+            .accessibilityHint("Double tap to create a new medicine entry"))
         }
     }
 }

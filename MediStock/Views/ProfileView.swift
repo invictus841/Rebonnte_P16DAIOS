@@ -15,7 +15,6 @@ struct ProfileView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 24) {
-                    // User Info Section
                     VStack(spacing: 16) {
                         Image(systemName: "person.circle.fill")
                             .font(.system(size: 80))
@@ -33,7 +32,6 @@ struct ProfileView: View {
                     }
                     .padding(.top, 20)
                     
-                    // Account Information Card
                     GroupBox("Account Information") {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
@@ -44,6 +42,7 @@ struct ProfileView: View {
                                     .foregroundColor(.secondary)
                                     .lineLimit(1)
                                     .truncationMode(.middle)
+                                    .accessibilityLabel("Logged in as \(authViewModel.userEmail)")
                             }
                             
                             Divider()
@@ -61,23 +60,22 @@ struct ProfileView: View {
                     }
                     .padding(.horizontal)
                     
-                    // 🗑️ Statistics section REMOVED - not in requirements
-                    
-                    // Sign Out Section
                     VStack(spacing: 16) {
                         SecondaryButton("Sign Out") {
                             authViewModel.signOut()
                         }
                         .foregroundColor(.red)
                         .padding(.horizontal)
+                        .accessibilityLabel("Sign out button")
+                        .accessibilityHint("Double tap to sign out of your account")
                         
-                        // App Version
                         Text("MediStock v1.0.0")
                             .font(.caption)
                             .foregroundColor(.secondary)
+                            .accessibilityLabel("App version 1.0.0")
                     }
                     .padding(.top, 20)
-                    .padding(.bottom, 40) // Extra padding for tab bar
+                    .padding(.bottom, 40)
                 }
             }
             .navigationTitle("Profile")
