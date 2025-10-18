@@ -172,17 +172,18 @@ class MedicineStockViewModel: ObservableObject {
         displayLimit = 5
         
         if query.isEmpty {
-            // Keep using the real-time listener data
-            print("🔍 Search cleared - showing all")
+            // 👇 Just restart the listener!
+            medicineService.stopMedicinesListener()
+            startRealtimeListener()
+            print("🔍 Search cleared - reloading all")
         } else {
-            // NEW: Use Firebase search instead of local filtering
+            // Your existing search code
             do {
                 let results = try await medicineService.searchMedicines(
                     query: query,
                     limit: 20,
                     sortBy: currentSortField
                 )
-                // Temporarily override the list with search results
                 fullMedicinesList = results
                 print("🔍 Found \(results.count) medicines via Firebase")
             } catch {

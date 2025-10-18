@@ -4,6 +4,7 @@ struct AllMedicinesView: View {
     @EnvironmentObject var viewModel: MedicineStockViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var searchText = ""
+    @State private var searchTask: Task<Void, Never>?
     
     var filteredMedicines: [Medicine] {
         return viewModel.allMedicines
@@ -33,27 +34,37 @@ struct AllMedicinesView: View {
     
     // MARK: - Search Bar
     private var searchBar: some View {
-        HStack {
-            Image(systemName: "magnifyingglass")
-                .foregroundColor(.secondary)
-            
-            TextField("Search medicines...", text: $searchText)
-                .onChange(of: searchText) { _, newValue in
-                    performSearch(query: newValue)
-                }
-            
-            if !searchText.isEmpty {
-                Button(action: clearSearch) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                
+                TextField("Search medicines...", text: $searchText)
+                    .onChange(of: searchText) { _, newValue in
+                        // Cancel previous search
+                        searchTask?.cancel()
+                        
+                        // Wait 0.5 seconds before searching
+                        searchTask = Task {
+                            try? await Task.sleep(nanoseconds: 500_000_000)
+                            
+                            if !Task.isCancelled {
+                                await viewModel.searchMedicines(query: newValue)
+                            }
+                        }
+                    }
+                
+                if !searchText.isEmpty {
+                    Button(action: clearSearch) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
+            .padding(10)
+            .background(Color(.systemGray6))
+            .cornerRadius(10)
+            .padding()
         }
-        .padding(10)
-        .background(Color(.systemGray6))
-        .cornerRadius(10)
-        .padding()
-    }
     
     // MARK: - Sort Menu
     private var sortMenu: some View {
@@ -228,11 +239,12 @@ struct AllMedicinesView: View {
     }
     
     private func clearSearch() {
-        searchText = ""
-        Task {
-            await viewModel.searchMedicines(query: "")
+            searchText = ""
+            searchTask?.cancel()  // ← Also cancel when clearing
+            Task {
+                await viewModel.searchMedicines(query: "")
+            }
         }
-    }
     
     private func changeSort(to field: MedicineSortField) {
         Task {
