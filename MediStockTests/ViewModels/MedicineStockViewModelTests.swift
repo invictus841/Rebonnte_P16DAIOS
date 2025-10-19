@@ -29,13 +29,10 @@ class MedicineStockViewModelTests: XCTestCase {
     // MARK: - Initialization Tests
     
     func test_initializeApp_loadsInitialMedicines() async {
-        // Given
         mockService.shouldThrowError = false
         
-        // When
         await sut.initializeApp()
         
-        // Then
         XCTAssertEqual(sut.appState, .ready)
         XCTAssertFalse(sut.allMedicines.isEmpty)
         XCTAssertEqual(sut.loadingProgress, 1.0)

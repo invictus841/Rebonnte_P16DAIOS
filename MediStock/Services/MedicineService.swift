@@ -9,8 +9,6 @@ import Foundation
 import FirebaseAuth
 import FirebaseFirestore
 
-// MARK: - Sort Options
-
 enum MedicineSortField: String {
     case name
     case stock

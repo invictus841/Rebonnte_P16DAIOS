@@ -13,16 +13,12 @@ struct AllMedicinesView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Search Bar
                 searchBar
                 
-                // Sort Menu
                 sortMenu
                 
-                // Medicines List
                 medicinesList
                 
-                // Bottom Info Bar
                 if !viewModel.allMedicines.isEmpty {
                     bottomInfoBar
                 }
@@ -32,7 +28,6 @@ struct AllMedicinesView: View {
         }
     }
     
-    // MARK: - Search Bar
     private var searchBar: some View {
             HStack {
                 Image(systemName: "magnifyingglass")
@@ -40,10 +35,8 @@ struct AllMedicinesView: View {
                 
                 TextField("Search medicines...", text: $searchText)
                     .onChange(of: searchText) { _, newValue in
-                        // Cancel previous search
                         searchTask?.cancel()
                         
-                        // Wait 0.5 seconds before searching
                         searchTask = Task {
                             try? await Task.sleep(nanoseconds: 500_000_000)
                             
@@ -66,7 +59,6 @@ struct AllMedicinesView: View {
             .padding()
         }
     
-    // MARK: - Sort Menu
     private var sortMenu: some View {
         HStack {
             Text("Sort:")
@@ -104,7 +96,6 @@ struct AllMedicinesView: View {
         .padding(.bottom, 8)
     }
     
-    // MARK: - Medicines List
     private var medicinesList: some View {
         List {
             if viewModel.allMedicines.isEmpty {
@@ -117,7 +108,6 @@ struct AllMedicinesView: View {
         .listStyle(PlainListStyle())
     }
     
-    // MARK: - Empty State
     private var emptyState: some View {
         EmptyStateView(
             systemName: "pills",
@@ -130,7 +120,6 @@ struct AllMedicinesView: View {
         .listRowBackground(Color.clear)
     }
     
-    // MARK: - Medicine Rows
     private var medicinesRows: some View {
         ForEach(filteredMedicines, id: \.id) { medicine in
             NavigationLink(destination: MedicineDetailView(medicine: medicine)) {
@@ -140,7 +129,6 @@ struct AllMedicinesView: View {
         .onDelete(perform: deleteMedicines)
     }
     
-    // MARK: - Load More Button
     private var loadMoreButton: some View {
         Group {
             if viewModel.hasMoreMedicines && searchText.isEmpty && !viewModel.isLoadingMore {
@@ -153,7 +141,7 @@ struct AllMedicinesView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                 }
-                .listRowSeparator(.hidden)  // 🆕 Hides the divider
+                .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
             }
             
@@ -168,7 +156,7 @@ struct AllMedicinesView: View {
                     Spacer()
                 }
                 .padding()
-                .listRowSeparator(.hidden)  // 🆕 Hides the divider
+                .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
             }
             
@@ -183,13 +171,12 @@ struct AllMedicinesView: View {
                     Spacer()
                 }
                 .padding()
-                .listRowSeparator(.hidden)  // 🆕 Hides the divider
+                .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
             }
         }
     }
     
-    // MARK: - Bottom Info Bar
     private var bottomInfoBar: some View {
         HStack {
             Text("Showing \(filteredMedicines.count) medicine\(filteredMedicines.count == 1 ? "" : "s")")
@@ -213,7 +200,6 @@ struct AllMedicinesView: View {
         .background(Color(.systemGray6))
     }
     
-    // MARK: - Add Button
     private var addButton: some View {
         NavigationLink(destination: AddMedicineView()) {
             Image(systemName: "plus")
@@ -222,7 +208,6 @@ struct AllMedicinesView: View {
         }
     }
     
-    // MARK: - Helper Properties
     private var sortLabel: String {
         switch viewModel.currentSortField {
         case .name: return "Name"
@@ -231,7 +216,6 @@ struct AllMedicinesView: View {
         }
     }
     
-    // MARK: - Actions
     private func performSearch(query: String) {
         Task {
             await viewModel.searchMedicines(query: query)
@@ -240,7 +224,7 @@ struct AllMedicinesView: View {
     
     private func clearSearch() {
             searchText = ""
-            searchTask?.cancel()  // ← Also cancel when clearing
+            searchTask?.cancel()
             Task {
                 await viewModel.searchMedicines(query: "")
             }
@@ -274,7 +258,6 @@ struct AllMedicinesView: View {
     }
 }
 
-// MARK: - Preview
 struct AllMedicinesView_Previews: PreviewProvider {
     static var previews: some View {
         AllMedicinesView()

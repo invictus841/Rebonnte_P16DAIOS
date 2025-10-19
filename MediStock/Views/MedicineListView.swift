@@ -5,7 +5,6 @@ struct MedicineListView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     let aisle: Int
     
-    // Computed property that always gets fresh data from viewModel
     var medicines: [Medicine] {
         viewModel.medicinesForAisle(aisle)
     }

@@ -29,7 +29,6 @@ class MockMedicineService: MedicineServiceProtocol {
     var medicinesListener: (([Medicine]) -> Void)?
     var historyListener: (([HistoryEntry]) -> Void)?
     
-    // Initialize with test data
     init() {
         setupTestData()
     }
@@ -43,8 +42,6 @@ class MockMedicineService: MedicineServiceProtocol {
             Medicine(id: "5", name: "Vitamin C", stock: 100, aisle: 3)
         ]
     }
-    
-    // MARK: - Load Methods (kept for compatibility but less used now)
     
     func loadMedicines(limit: Int, startAfter: Any?, sortBy: MedicineSortField, order: MedicineSortOrder) async throws -> [Medicine] {
         loadMedicinesCallCount += 1
@@ -103,11 +100,10 @@ class MockMedicineService: MedicineServiceProtocol {
         return Array(sorted.prefix(limit))
     }
     
-    // MARK: - Real-time Listeners (PRIMARY for new approach)
+    // MARK: - Real-time Listeners
     
     func startMedicinesListener(completion: @escaping ([Medicine]) -> Void) {
         medicinesListener = completion
-        // Immediately send current medicines
         completion(medicines)
         print("🧪 Mock listener started with \(medicines.count) medicines")
     }
@@ -129,7 +125,7 @@ class MockMedicineService: MedicineServiceProtocol {
     
     // MARK: - CRUD Operations
     
-    func addMedicine(_ medicine: Medicine) async throws -> Medicine {  // 🆕 Returns Medicine
+    func addMedicine(_ medicine: Medicine) async throws -> Medicine {
         addMedicineCallCount += 1
         
         if shouldThrowError {
@@ -140,12 +136,11 @@ class MockMedicineService: MedicineServiceProtocol {
         newMedicine.id = UUID().uuidString
         medicines.append(newMedicine)
         
-        // Notify listener if active
         medicinesListener?(medicines)
         
         print("🧪 Mock: Added medicine - total now: \(medicines.count)")
         
-        return newMedicine  // 🆕 Return the created medicine
+        return newMedicine
     }
     
     func updateMedicine(_ medicine: Medicine) async throws {
@@ -203,7 +198,6 @@ class MockMedicineService: MedicineServiceProtocol {
         newEntry.id = UUID().uuidString
         historyEntries.append(newEntry)
         
-        // Notify history listener if watching this medicine
         let filtered = historyEntries.filter { $0.medicineId == entry.medicineId }
         historyListener?(filtered)
     }
@@ -254,7 +248,6 @@ class MockMedicineService: MedicineServiceProtocol {
         newMedicine.id = UUID().uuidString
         medicines.append(newMedicine)
         
-        // Trigger listener as if Firebase sent an update
         medicinesListener?(medicines)
         print("🧪 Mock: Simulated remote add - \(newMedicine.name)")
     }

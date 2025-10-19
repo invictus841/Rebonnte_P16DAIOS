@@ -202,8 +202,6 @@ struct AddMedicineView: View {
     }
 }
 
-// MARK: - Preview
-
 #Preview {
     AddMedicineView()
         .environmentObject(AuthViewModel())

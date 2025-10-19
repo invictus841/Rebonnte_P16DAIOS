@@ -15,19 +15,15 @@ struct ContentView: View {
             } else if showMainApp {
                 MainTabView()
             } else {
-                // Loading state - show simple spinner while data loads
                 LaunchScreenView()
             }
         }
         .onChange(of: authViewModel.isAuthenticated) { oldValue, isAuthenticated in
             if isAuthenticated && !oldValue {
-                // User just logged in - initialize app
                 Task {
                     await medicineViewModel.initializeApp()
                 }
             } else if !isAuthenticated && oldValue {
-                // User logged out - cleanup
-                // 🆕 FIXED: cleanup() already stops all listeners, no need to call stopHistoryListener()
                 medicineViewModel.stopMedicinesListener()
                 medicineViewModel.cleanup()
             }

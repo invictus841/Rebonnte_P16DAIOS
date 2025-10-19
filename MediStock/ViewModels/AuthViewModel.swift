@@ -10,13 +10,10 @@ import Foundation
 @MainActor
 class AuthViewModel: ObservableObject {
     
-    // MARK: - Published Properties
-    
     @Published var currentUser: User?
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var isAuthenticated = false
-    
     
     private let authService: AuthServiceProtocol
     
@@ -24,8 +21,6 @@ class AuthViewModel: ObservableObject {
         self.authService = authService
         startListening()
     }
-    
-    // MARK: - Public Methods
     
     func signIn(email: String, password: String) async {
         isLoading = true
@@ -82,8 +77,6 @@ class AuthViewModel: ObservableObject {
         errorMessage = nil
     }
     
-    // MARK: - Private Methods
-    
     private func startListening() {
         authService.startAuthListener { [weak self] user in
 
@@ -106,8 +99,6 @@ class AuthViewModel: ObservableObject {
     var displayName: String {
         currentUser?.email ?? "User"
     }
-    
-    // MARK: - Cleanup
     
     deinit {
         authService.stopAuthListener()

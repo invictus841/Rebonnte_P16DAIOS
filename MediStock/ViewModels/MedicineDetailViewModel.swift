@@ -10,24 +10,16 @@ import Foundation
 @MainActor
 class MedicineDetailViewModel: ObservableObject {
     
-    // MARK: - Published Properties
-    
     @Published var history: [HistoryEntry] = []
     @Published var isLoading = false
     
-    // MARK: - Private Properties
-    
     private let medicineService: MedicineServiceProtocol
     private var medicineId: String = ""
-    
-    // MARK: - Initialization
     
     init(medicineService: MedicineServiceProtocol = FirebaseMedicineService()) {
         self.medicineService = medicineService
         print("✅ MedicineDetailViewModel initialized")
     }
-    
-    // MARK: - Public Methods
     
     func loadHistory(for medicineId: String) {
         self.medicineId = medicineId
@@ -55,8 +47,6 @@ class MedicineDetailViewModel: ObservableObject {
         
         print("🧹 Detail ViewModel cleanup complete")
     }
-    
-    // MARK: - Deinitialization
     
     deinit {
         medicineService.stopHistoryListener()

@@ -8,18 +8,6 @@
 import Foundation
 import FirebaseAuth
 
-// MARK: - User Model
-
-struct User: Codable, Equatable {
-    let uid: String
-    let email: String?
-    
-    init(uid: String, email: String?) {
-        self.uid = uid
-        self.email = email
-    }
-}
-
 // MARK: - Auth Errors
 
 enum AuthError: LocalizedError {
