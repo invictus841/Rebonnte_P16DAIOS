@@ -9,7 +9,6 @@ import Foundation
 @testable import MediStock
 
 class MockAuthService: AuthServiceProtocol {
-    // Control test behavior
     var shouldSucceed = true
     var mockUser: User?
     var signInCallCount = 0
@@ -17,12 +16,10 @@ class MockAuthService: AuthServiceProtocol {
     var signOutCallCount = 0
     var authStateListener: ((User?) -> Void)?
     
-    // Mock current user
     var currentUser: User? {
         return mockUser
     }
     
-    // Mock sign in
     func signIn(email: String, password: String) async -> AuthResult {
         signInCallCount += 1
         
@@ -35,7 +32,6 @@ class MockAuthService: AuthServiceProtocol {
         }
     }
     
-    // Mock sign up
     func signUp(email: String, password: String) async -> AuthResult {
         signUpCallCount += 1
         
@@ -53,7 +49,6 @@ class MockAuthService: AuthServiceProtocol {
         }
     }
     
-    // Mock sign out
     func signOut() -> Result<Void, AuthError> {
         signOutCallCount += 1
         
@@ -66,7 +61,6 @@ class MockAuthService: AuthServiceProtocol {
         }
     }
     
-    // Mock auth listener
     func startAuthListener(completion: @escaping (User?) -> Void) {
         authStateListener = completion
         completion(mockUser)
@@ -76,7 +70,6 @@ class MockAuthService: AuthServiceProtocol {
         authStateListener = nil
     }
     
-    // Helper method to simulate user state change
     func simulateUserStateChange(user: User?) {
         mockUser = user
         authStateListener?(user)

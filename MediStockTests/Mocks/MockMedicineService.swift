@@ -9,15 +9,12 @@ import Foundation
 @testable import MediStock
 
 class MockMedicineService: MedicineServiceProtocol {
-    // Test data
     var medicines: [Medicine] = []
     var historyEntries: [HistoryEntry] = []
     
-    // Control test behavior
     var shouldThrowError = false
     var loadDelay: UInt64 = 0
     
-    // Track method calls
     var loadMedicinesCallCount = 0
     var addMedicineCallCount = 0
     var updateMedicineCallCount = 0
@@ -25,13 +22,14 @@ class MockMedicineService: MedicineServiceProtocol {
     var updateStockCallCount = 0
     var addHistoryCallCount = 0
     
-    // Listeners
     var medicinesListener: (([Medicine]) -> Void)?
     var historyListener: (([HistoryEntry]) -> Void)?
     
     init() {
         setupTestData()
     }
+    
+    // MARK: - Setup
     
     private func setupTestData() {
         medicines = [
@@ -43,6 +41,8 @@ class MockMedicineService: MedicineServiceProtocol {
         ]
     }
     
+    // MARK: - Load Operations
+    
     func loadMedicines(limit: Int, startAfter: Any?, sortBy: MedicineSortField, order: MedicineSortOrder) async throws -> [Medicine] {
         loadMedicinesCallCount += 1
         
@@ -50,7 +50,6 @@ class MockMedicineService: MedicineServiceProtocol {
             throw MedicineServiceError.notAuthenticated
         }
         
-        // Simple pagination simulation
         let sorted = medicines.sorted { med1, med2 in
             switch sortBy {
             case .name:
@@ -73,7 +72,7 @@ class MockMedicineService: MedicineServiceProtocol {
             throw MedicineServiceError.notAuthenticated
         }
         
-        let aisleNumber = Int(aisle.replacingOccurrences(of: "Aisle ", with: "")) ?? 0
+        let aisleNumber = Int(aisle) ?? 0
         return medicines.filter { $0.aisle == aisleNumber }.prefix(limit).map { $0 }
     }
     
@@ -138,15 +137,13 @@ class MockMedicineService: MedicineServiceProtocol {
         
         medicinesListener?(medicines)
         
-        print("🧪 Mock: Added medicine - total now: \(medicines.count)")
-        
         return newMedicine
     }
     
     func updateMedicine(_ medicine: Medicine) async throws {
         updateMedicineCallCount += 1
         
-        guard let id = medicine.id else {
+        guard medicine.id != nil else {
             throw MedicineServiceError.invalidData
         }
         
@@ -154,10 +151,9 @@ class MockMedicineService: MedicineServiceProtocol {
             throw MedicineServiceError.unknown("Update failed")
         }
         
-        if let index = medicines.firstIndex(where: { $0.id == id }) {
+        if let index = medicines.firstIndex(where: { $0.id == medicine.id }) {
             medicines[index] = medicine
             medicinesListener?(medicines)
-            print("🧪 Mock: Updated medicine")
         }
     }
     
@@ -170,7 +166,6 @@ class MockMedicineService: MedicineServiceProtocol {
         
         medicines.removeAll { $0.id == id }
         medicinesListener?(medicines)
-        print("🧪 Mock: Deleted medicine - total now: \(medicines.count)")
     }
     
     func updateStock(medicineId: String, newStock: Int) async throws {
@@ -183,20 +178,19 @@ class MockMedicineService: MedicineServiceProtocol {
         if let index = medicines.firstIndex(where: { $0.id == medicineId }) {
             medicines[index].stock = newStock
             medicinesListener?(medicines)
-            print("🧪 Mock: Updated stock to \(newStock)")
         }
     }
+    
+    // MARK: - History Operations
     
     func addHistoryEntry(_ entry: HistoryEntry) async throws {
         addHistoryCallCount += 1
         
         if shouldThrowError {
-            throw MedicineServiceError.unknown("History add failed")
+            throw MedicineServiceError.notAuthenticated
         }
         
-        var newEntry = entry
-        newEntry.id = UUID().uuidString
-        historyEntries.append(newEntry)
+        historyEntries.append(entry)
         
         let filtered = historyEntries.filter { $0.medicineId == entry.medicineId }
         historyListener?(filtered)
@@ -207,57 +201,19 @@ class MockMedicineService: MedicineServiceProtocol {
     func stopAllListeners() {
         medicinesListener = nil
         historyListener = nil
-        print("🧪 Mock: All listeners stopped")
     }
     
-    // MARK: - Test Helper Methods
-    
-    func reset() {
-        setupTestData()
-        historyEntries = []
-        shouldThrowError = false
-        loadDelay = 0
-        loadMedicinesCallCount = 0
-        addMedicineCallCount = 0
-        updateMedicineCallCount = 0
-        deleteMedicineCallCount = 0
-        updateStockCallCount = 0
-        addHistoryCallCount = 0
-        medicinesListener = nil
-        historyListener = nil
-    }
+    // MARK: - Test Helpers
     
     func addTestHistory(for medicineId: String, count: Int) {
         for i in 0..<count {
-            historyEntries.append(
-                HistoryEntry(
-                    id: "history-\(i)",
-                    medicineId: medicineId,
-                    user: "test@example.com",
-                    action: "Test action \(i)",
-                    details: "Test details \(i)",
-                    timestamp: Date().addingTimeInterval(TimeInterval(-i * 3600))
-                )
+            let entry = HistoryEntry(
+                medicineId: medicineId,
+                user: "test@test.com",
+                action: "Test Action \(i)",
+                details: "Test details \(i)"
             )
-        }
-    }
-    
-    // Helper to simulate another user adding a medicine
-    func simulateRemoteAdd(_ medicine: Medicine) {
-        var newMedicine = medicine
-        newMedicine.id = UUID().uuidString
-        medicines.append(newMedicine)
-        
-        medicinesListener?(medicines)
-        print("🧪 Mock: Simulated remote add - \(newMedicine.name)")
-    }
-    
-    // Helper to simulate another user updating stock
-    func simulateRemoteStockUpdate(medicineId: String, newStock: Int) {
-        if let index = medicines.firstIndex(where: { $0.id == medicineId }) {
-            medicines[index].stock = newStock
-            medicinesListener?(medicines)
-            print("🧪 Mock: Simulated remote stock update")
+            historyEntries.append(entry)
         }
     }
 }
