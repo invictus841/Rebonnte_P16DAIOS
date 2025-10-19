@@ -1,0 +1,37 @@
+name: iOS Build and Test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create test results directory
+        run: mkdir -p testResults
+      
+      - name: Setup Xcode 16.4
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.4'
+
+      - name: Build and Test
+        uses: sersoft-gmbh/xcodebuild-action@v3.2.0
+        with:
+          project: MediStock.xcodeproj
+          scheme: MediStock
+          destination: 'platform=iOS Simulator,name=iPhone 16'
+          action: test
+          only-testing: MediStockTests
+          result-bundle-path: 'testResults/TestResults.xcresult'
+
+      - name: Process Test Results
+        uses: slidoapp/xcresulttool@v3.1.0
+        with:
+          path: testResults/TestResults.xcresult
+        if: success() || failure()
