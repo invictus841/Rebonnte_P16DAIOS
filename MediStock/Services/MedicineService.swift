@@ -24,7 +24,11 @@ protocol MedicineServiceProtocol {
 
     func searchMedicines(query: String, limit: Int, sortBy: MedicineSortField) async throws -> [Medicine]
     
-    func startMedicinesListener(completion: @escaping ([Medicine]) -> Void)
+    func startMedicinesListener(
+        onSuccess: @escaping ([Medicine]) -> Void,
+        onError: @escaping (Error) -> Void
+    )
+    
     func stopMedicinesListener()
     
     func startHistoryListener(for medicineId: String, completion: @escaping ([HistoryEntry]) -> Void)
@@ -63,9 +67,12 @@ class FirebaseMedicineService: MedicineServiceProtocol {
         return snapshot.documents.compactMap { try? $0.data(as: Medicine.self) }
     }
     
-    func startMedicinesListener(completion: @escaping ([Medicine]) -> Void) {
+    func startMedicinesListener(
+        onSuccess: @escaping ([Medicine]) -> Void,
+        onError: @escaping (Error) -> Void
+    ) {
         guard Auth.auth().currentUser != nil else {
-            completion([])
+            onError(MedicineServiceError.notAuthenticated)
             return
         }
         
@@ -79,7 +86,7 @@ class FirebaseMedicineService: MedicineServiceProtocol {
                 
                 if let error = error {
                     print("❌ Listener error: \(error)")
-                    completion([])
+                    onError(error)
                     return
                 }
                 
@@ -87,7 +94,7 @@ class FirebaseMedicineService: MedicineServiceProtocol {
                     try? $0.data(as: Medicine.self)
                 } ?? []
                 
-                completion(medicines)
+                onSuccess(medicines)
             }
     }
     

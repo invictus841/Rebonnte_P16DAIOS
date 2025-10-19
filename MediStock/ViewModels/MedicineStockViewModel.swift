@@ -79,24 +79,32 @@ class MedicineStockViewModel: ObservableObject {
         
         startRealtimeListener()
         
-        try? await Task.sleep(nanoseconds: 500_000_000)
+        try? await Task.sleep(nanoseconds: 100_000_000)
         
-        loadingProgress = 1.0
-        appState = .ready
-        
-        print("✅ App initialized with real-time listener")
-    }
-    
-    private func startRealtimeListener() {
-        medicineService.startMedicinesListener { [weak self] medicines in
-            Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                
-                self.fullMedicinesList = self.sortMedicines(medicines)
-                
-                print("🔄 Real-time update: \(medicines.count) total medicines")
-            }
+        if appState == .loading {
+            loadingProgress = 1.0
+            appState = .ready
+            print("✅ App initialized with real-time listener")
         }
+    }
+
+    private func startRealtimeListener() {
+        medicineService.startMedicinesListener(
+            onSuccess: { [weak self] medicines in
+                Task { @MainActor [weak self] in
+                    guard let self = self else { return }
+                    self.fullMedicinesList = self.sortMedicines(medicines)
+                    print("🔄 Real-time update: \(medicines.count) total medicines")
+                }
+            },
+            onError: { [weak self] error in
+                Task { @MainActor [weak self] in
+                    guard let self = self else { return }
+                    self.appState = .error(error.localizedDescription)
+                    print("❌ Listener error: \(error.localizedDescription)")
+                }
+            }
+        )
     }
     
     func loadMoreMedicines() async {

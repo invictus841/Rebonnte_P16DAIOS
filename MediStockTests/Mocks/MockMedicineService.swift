@@ -66,10 +66,18 @@ class MockMedicineService: MedicineServiceProtocol {
     
     // MARK: - Real-time Listeners
     
-    func startMedicinesListener(completion: @escaping ([Medicine]) -> Void) {
-        medicinesListener = completion
-        completion(medicines)
-        print("🧪 Mock listener started with \(medicines.count) medicines")
+    func startMedicinesListener(
+        onSuccess: @escaping ([Medicine]) -> Void,
+        onError: @escaping (Error) -> Void
+    ) {
+        if shouldThrowError {
+            onError(MedicineServiceError.notAuthenticated)
+            print("🧪 Mock listener simulating error")
+        } else {
+            medicinesListener = onSuccess
+            onSuccess(medicines)
+            print("🧪 Mock listener started with \(medicines.count) medicines")
+        }
     }
     
     func stopMedicinesListener() {
