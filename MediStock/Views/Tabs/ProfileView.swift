@@ -9,7 +9,6 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
-    @EnvironmentObject var medicineViewModel: MedicineStockViewModel
     
     var body: some View {
         NavigationView {

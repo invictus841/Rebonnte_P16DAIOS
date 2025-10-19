@@ -16,10 +16,6 @@ class MockAuthService: AuthServiceProtocol {
     var signOutCallCount = 0
     var authStateListener: ((User?) -> Void)?
     
-    var currentUser: User? {
-        return mockUser
-    }
-    
     func signIn(email: String, password: String) async -> AuthResult {
         signInCallCount += 1
         

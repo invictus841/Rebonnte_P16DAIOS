@@ -41,41 +41,6 @@ class MockMedicineService: MedicineServiceProtocol {
         ]
     }
     
-    // MARK: - Load Operations
-    
-    func loadMedicines(limit: Int, startAfter: Any?, sortBy: MedicineSortField, order: MedicineSortOrder) async throws -> [Medicine] {
-        loadMedicinesCallCount += 1
-        
-        if shouldThrowError {
-            throw MedicineServiceError.notAuthenticated
-        }
-        
-        let sorted = medicines.sorted { med1, med2 in
-            switch sortBy {
-            case .name:
-                return order == .ascending ? med1.name < med2.name : med1.name > med2.name
-            case .stock:
-                return order == .ascending ? med1.stock < med2.stock : med1.stock > med2.stock
-            case .aisle:
-                return order == .ascending ? med1.aisle < med2.aisle : med1.aisle > med2.aisle
-            }
-        }
-        
-        let startIndex = startAfter != nil ? min(limit, sorted.count) : 0
-        let endIndex = min(startIndex + limit, sorted.count)
-        
-        return Array(sorted[startIndex..<endIndex])
-    }
-    
-    func loadMedicines(forAisle aisle: String, limit: Int, sortBy: MedicineSortField) async throws -> [Medicine] {
-        if shouldThrowError {
-            throw MedicineServiceError.notAuthenticated
-        }
-        
-        let aisleNumber = Int(aisle) ?? 0
-        return medicines.filter { $0.aisle == aisleNumber }.prefix(limit).map { $0 }
-    }
-    
     func searchMedicines(query: String, limit: Int, sortBy: MedicineSortField) async throws -> [Medicine] {
         if shouldThrowError {
             throw MedicineServiceError.notAuthenticated
@@ -201,19 +166,5 @@ class MockMedicineService: MedicineServiceProtocol {
     func stopAllListeners() {
         medicinesListener = nil
         historyListener = nil
-    }
-    
-    // MARK: - Test Helpers
-    
-    func addTestHistory(for medicineId: String, count: Int) {
-        for i in 0..<count {
-            let entry = HistoryEntry(
-                medicineId: medicineId,
-                user: "test@test.com",
-                action: "Test Action \(i)",
-                details: "Test details \(i)"
-            )
-            historyEntries.append(entry)
-        }
     }
 }

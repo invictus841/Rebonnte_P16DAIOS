@@ -46,7 +46,6 @@ enum AuthResult {
 // MARK: - Auth Service Protocol
 
 protocol AuthServiceProtocol {
-    var currentUser: User? { get }
     
     func signIn(email: String, password: String) async -> AuthResult
     
@@ -63,11 +62,6 @@ protocol AuthServiceProtocol {
 
 class FirebaseAuthService: AuthServiceProtocol {
     private var authHandle: AuthStateDidChangeListenerHandle?
-    
-    var currentUser: User? {
-        guard let firebaseUser = Auth.auth().currentUser else { return nil }
-        return User(uid: firebaseUser.uid, email: firebaseUser.email)
-    }
     
     func signIn(email: String, password: String) async -> AuthResult {
         do {

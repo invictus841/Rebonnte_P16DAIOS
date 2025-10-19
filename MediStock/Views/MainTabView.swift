@@ -1,8 +1,6 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @EnvironmentObject var authViewModel: AuthViewModel
-    @EnvironmentObject var medicineViewModel: MedicineStockViewModel
     @State private var selectedTab = 0
     
     var body: some View {

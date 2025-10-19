@@ -216,12 +216,6 @@ struct AllMedicinesView: View {
         }
     }
     
-    private func performSearch(query: String) {
-        Task {
-            await viewModel.searchMedicines(query: query)
-        }
-    }
-    
     private func clearSearch() {
             searchText = ""
             searchTask?.cancel()
