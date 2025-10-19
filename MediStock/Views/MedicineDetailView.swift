@@ -11,6 +11,8 @@ struct MedicineDetailView: View {
     @State private var showStockPicker = false
     @State private var hasInitialized = false
     
+    @State private var showInsufficientStockAlert = false
+    
     @StateObject private var detailViewModel = MedicineDetailViewModel()
     
     @EnvironmentObject var viewModel: MedicineStockViewModel
@@ -78,6 +80,11 @@ struct MedicineDetailView: View {
                     }
                 }
             }
+        }
+        .alert("Insufficient Stock", isPresented: $showInsufficientStockAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Cannot remove more stock than available.")
         }
     }
     
@@ -344,7 +351,14 @@ struct MedicineDetailView: View {
     // MARK: - Actions
     
     private func applyStockChange() {
+        guard let current = currentMedicine else { return }
+        
         let change = isAddMode ? stockAdjustment : -stockAdjustment
+        
+        if !isAddMode && stockAdjustment > current.stock {
+            showInsufficientStockAlert = true
+            return
+        }
         
         Task {
             await viewModel.updateStock(
@@ -360,6 +374,13 @@ struct MedicineDetailView: View {
     }
     
     private func quickAdjust(_ amount: Int) {
+        guard let current = currentMedicine else { return }
+        
+        if amount < 0 && abs(amount) > current.stock {
+            showInsufficientStockAlert = true
+            return
+        }
+        
         Task {
             await viewModel.updateStock(
                 medicineId: medicineId,
