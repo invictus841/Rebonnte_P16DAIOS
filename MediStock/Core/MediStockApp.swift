@@ -18,7 +18,7 @@ struct MediStockApp: App {
             ContentView()
                 .environmentObject(authViewModel)
                 .environmentObject(medicineViewModel)
-                .preferredColorScheme(.none) // Respect system setting
+                .preferredColorScheme(.none)
         }
     }
 }
